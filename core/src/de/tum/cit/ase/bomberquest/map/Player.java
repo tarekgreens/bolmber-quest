@@ -1,5 +1,7 @@
 package de.tum.cit.ase.bomberquest.map;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -66,10 +68,28 @@ public class Player implements Drawable {
         // Make the player move in a circle with radius 2 tiles
         // You can change this to make the player move differently, e.g. in response to user input.
         // See Gdx.input.isKeyPressed() for keyboard input
-        float xVelocity = (float) Math.sin(this.elapsedTime) * 2;
-        float yVelocity = (float) Math.cos(this.elapsedTime) * 2;
+        //float xVelocity = (float) Math.sin(this.elapsedTime) * 2;
+        //float yVelocity = (float) Math.cos(this.elapsedTime) * 2;
+        //this.hitbox.setLinearVelocity(xVelocity, yVelocity);
+        float xVelocity = 0;
+        float yVelocity = 0;
+
+
+        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+            yVelocity = 2;
+        } else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+            yVelocity = -2;
+        }
+
+        if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+            xVelocity = -2;
+        } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+            xVelocity = 2;
+        }
+
         this.hitbox.setLinearVelocity(xVelocity, yVelocity);
     }
+
     
     @Override
     public TextureRegion getCurrentAppearance() {
