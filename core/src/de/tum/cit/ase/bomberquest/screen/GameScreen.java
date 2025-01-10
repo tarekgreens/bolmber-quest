@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
 import de.tum.cit.ase.bomberquest.map.Flowers;
+import de.tum.cit.ase.bomberquest.map.WallPath;
 import de.tum.cit.ase.bomberquest.texture.Drawable;
 import de.tum.cit.ase.bomberquest.map.GameMap;
 
@@ -38,6 +39,7 @@ public class GameScreen implements Screen {
     private final GameMap map;
     private final Hud hud;
     private final OrthographicCamera mapCamera;
+    private WallPath[] walls;
 
     /**
      * Constructor for GameScreen. Sets up the camera and font.
@@ -52,6 +54,7 @@ public class GameScreen implements Screen {
         // Create and configure the camera for the game view
         this.mapCamera = new OrthographicCamera();
         this.mapCamera.setToOrtho(false);
+        this.walls = walls;
     }
     
     /**
@@ -83,7 +86,13 @@ public class GameScreen implements Screen {
         // Render the HUD on the screen
         hud.render();
     }
-    
+    public void render(SpriteBatch batch) {
+        for (WallPath wall : walls) {
+            wall.render(batch);
+        }
+    }
+
+
     /**
      * Updates the camera to match the current state of the game.
      * Currently, this just centers the camera at the origin.

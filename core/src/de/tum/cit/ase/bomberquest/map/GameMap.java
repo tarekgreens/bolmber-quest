@@ -73,6 +73,7 @@ public class GameMap {
     public void tick(float frameTime) {
         this.player.tick(frameTime);
         doPhysicsStep(frameTime);
+
     }
     
     /**
@@ -86,6 +87,7 @@ public class GameMap {
             this.world.step(TIME_STEP, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
             this.physicsTime -= TIME_STEP;
         }
+
     }
     
     /** Returns the player on the map. */
