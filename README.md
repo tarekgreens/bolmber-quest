@@ -11,3 +11,6 @@ WallPath is extended by DestructibleWall and IndestructibleWall classes that imp
 Added hasExit method to check if the player has reached the exit.
 Added Render method in GameScreen class to render the wall or path.
 
+Added Render method to Player, Flowers and Chest.
+Added a list of walls to GameMap,
+

@@ -2,6 +2,7 @@ package de.tum.cit.ase.bomberquest.map;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -107,5 +108,9 @@ public class Player implements Drawable {
     public float getY() {
         // The y-coordinate of the player is the y-coordinate of the hitbox (this can change every frame).
         return hitbox.getPosition().y;
+    }
+    public void render(SpriteBatch batch) {
+        // Get the texture for the player and draw it at the player's current position
+        batch.draw(getCurrentAppearance(), getX(), getY(), 1f, 1f);
     }
 }

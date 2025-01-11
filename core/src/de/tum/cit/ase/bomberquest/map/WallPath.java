@@ -2,32 +2,99 @@ package de.tum.cit.ase.bomberquest.map;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
+import de.tum.cit.ase.bomberquest.texture.Drawable;
 
-/*
-* WallPath is an abstract class that represents a wall or path in the game map.
-*
+/**
+ * WallPath is an abstract class that represents a wall or path in the game map.
+ * It no longer uses animation, and it directly handles a static texture.
  */
-public abstract class WallPath {
+public abstract class WallPath extends Object implements Drawable{
+
+    private static final float TILE_SIZE = 32.0f;
+
     protected Rectangle bounds;
-    protected Texture texture;
+    protected TextureRegion textureRegion;
+    protected boolean isDestroyed;
 
-    // Constructor
-    public WallPath(float x, float y, float width, float height, Texture texture) {
+    /**
+     * Constructs a WallPath object.
+     *
+     * @param x             X position of the wall/path.
+     * @param y             Y position of the wall/path.
+     * @param width         Width of the wall/path.
+     * @param height        Height of the wall/path.
+     * @param textureRegion TextureRegion to render for the wall/path.
+     */
+    public WallPath(float x, float y, float width, float height, TextureRegion textureRegion) {
+        super(x, y, null);  // No animation for the wall, passing null for animation.
+
+        if (textureRegion == null) {
+            throw new IllegalArgumentException("TextureRegion cannot be null for WallPath object.");
+        }
+        if (width <= 0 || height <= 0) {
+            throw new IllegalArgumentException("Width and height must be positive.");
+        }
+
         this.bounds = new Rectangle(x, y, width, height);
-        this.texture = texture;
+        this.textureRegion = textureRegion;
+        this.isDestroyed = false;
     }
 
-    // Render method for drawing the wall or path
-    public void render(SpriteBatch batch) {
-        batch.draw(texture, bounds.x, bounds.y, bounds.width, bounds.height);
+    /**
+     * Renders the wall/path if it is not destroyed.
+     *
+     * @param batch The SpriteBatch used to draw the texture.
+     */
+    @Override
+    public void draw(SpriteBatch batch, float x, float y, float delta, float width, float height) {
+        if (!isDestroyed && textureRegion != null) {
+            batch.draw(textureRegion, x, y, width, height);
+        }
     }
 
-    // Abstract methods for specific behaviors
+    /**
+     * Determines if the wall/path is destructible.
+     *
+     * @return True if destructible, false otherwise.
+     */
     public abstract boolean isDestructible();
+
+    /**
+     * Destroys the wall/path, if applicable.
+     */
     public abstract void destroy();
+
+    /**
+     * Gets the bounding rectangle for collision or placement purposes.
+     *
+     * @return The bounds of the wall/path.
+     */
     public Rectangle getBounds() {
         return bounds;
     }
-}
 
+    /**
+     * Checks if the wall/path has been destroyed.
+     *
+     * @return True if destroyed, false otherwise.
+     */
+    public boolean isDestroyed() {
+        return isDestroyed;
+    }
+
+    /**
+     * Disposes of resources associated with this wall/path.
+     */
+    public void dispose() {
+        if (textureRegion != null) {
+            // Optionally dispose the texture associated with the texture region
+            textureRegion.getTexture().dispose();
+        }
+    }
+    public TextureRegion getCurrentAppearance() {
+        return textureRegion;
+    }
+
+}

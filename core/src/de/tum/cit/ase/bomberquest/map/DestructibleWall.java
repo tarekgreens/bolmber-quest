@@ -1,35 +1,41 @@
 package de.tum.cit.ase.bomberquest.map;
 
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import de.tum.cit.ase.bomberquest.texture.Drawable;
 
-public class DestructibleWall extends WallPath{
-    private boolean destructible = true;
-    private boolean hasExit;
+/**
+ * DestructibleWall is a subclass of WallPath that can be destroyed.
+ */
+public class DestructibleWall extends WallPath {
 
-    public DestructibleWall(float x, float y, float width, float height, Texture texture, boolean hasExit) {
-        super(x, y, width, height, texture);
-        this.hasExit = hasExit;
+    /**
+     * Constructs a DestructibleWall with the specified position, dimensions, and texture region.
+     *
+     * @param x             The initial x-coordinate of the wall.
+     * @param y             The initial y-coordinate of the wall.
+     * @param width         The width of the wall.
+     * @param height        The height of the wall.
+     * @param textureRegion The TextureRegion for the static appearance of the wall.
+     */
+    public DestructibleWall(float x, float y, float width, float height, TextureRegion textureRegion) {
+        super(x, y, width, height, textureRegion); // Pass textureRegion to the super constructor
     }
 
+    /**
+     * Determines if the wall/path is destructible.
+     *
+     * @return True because this is a destructible wall.
+     */
     @Override
     public boolean isDestructible() {
-        return destructible;
+        return true;
     }
 
+    /**
+     * Destroys the wall/path by setting the isDestroyed flag to true.
+     */
     @Override
     public void destroy() {
-        if (destructible) {
-            destructible = false;
-            if (hasExit) {
-                texture = new Texture("exit_texture.png"); // Reveal exit
-            } else {
-                texture = new Texture("path_texture.png"); // Replace with path texture
-            }
-        }
-    }
-
-    public boolean hasExit() {
-        return hasExit;
+        this.isDestroyed = true;
     }
 }
-

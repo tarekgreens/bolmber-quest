@@ -1,5 +1,6 @@
 package de.tum.cit.ase.bomberquest.map;
 
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.physics.box2d.*;
 import de.tum.cit.ase.bomberquest.texture.Drawable;
@@ -67,4 +68,5 @@ public class Chest implements Drawable {
     public float getY() {
         return y;
     }
+
 }

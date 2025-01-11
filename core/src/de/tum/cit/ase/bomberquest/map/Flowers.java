@@ -1,5 +1,6 @@
 package de.tum.cit.ase.bomberquest.map;
 
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import de.tum.cit.ase.bomberquest.texture.Drawable;
 import de.tum.cit.ase.bomberquest.texture.Textures;
@@ -33,4 +34,5 @@ public class Flowers implements Drawable {
     public float getY() {
         return y;
     }
+
 }

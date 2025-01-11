@@ -32,12 +32,6 @@ public class DesktopLauncher {
 		config.useVsync(true); // Enable vertical sync
 		config.setForegroundFPS(60); // Set the foreground frames per second
 
-		/*List<WallPath> walls = new ArrayList<>();
-
-// Example for creating walls
-		walls.add(new DestructibleWall(0, 0, 32, 32, new Texture("destructible_wall.png"), false));
-		walls.add(new IndestructibleWall(32, 0, 32, 32, new Texture("indestructible_wall.png"))); */
-
 
 		// Launch the game
 		new Lwjgl3Application(new BomberQuestGame(new DesktopFileChooser()), config);

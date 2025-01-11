@@ -26,7 +26,7 @@ public class GameScreen implements Screen {
      * (e.g. x=1, y=1 is the bottom left corner of the map)
      * rather than absolute pixel coordinates.
      */
-    public static final int TILE_SIZE_PX = 16;
+    public static final int TILE_SIZE_PX =16;
     
     /**
      * The scale of the game.
@@ -39,7 +39,7 @@ public class GameScreen implements Screen {
     private final GameMap map;
     private final Hud hud;
     private final OrthographicCamera mapCamera;
-    private WallPath[] walls;
+
 
     /**
      * Constructor for GameScreen. Sets up the camera and font.
@@ -54,7 +54,7 @@ public class GameScreen implements Screen {
         // Create and configure the camera for the game view
         this.mapCamera = new OrthographicCamera();
         this.mapCamera.setToOrtho(false);
-        this.walls = walls;
+
     }
     
     /**
@@ -86,11 +86,6 @@ public class GameScreen implements Screen {
         // Render the HUD on the screen
         hud.render();
     }
-    public void render(SpriteBatch batch) {
-        for (WallPath wall : walls) {
-            wall.render(batch);
-        }
-    }
 
 
     /**
@@ -107,10 +102,10 @@ public class GameScreen implements Screen {
     private void renderMap() {
         // This configures the spriteBatch to use the camera's perspective when rendering
         spriteBatch.setProjectionMatrix(mapCamera.combined);
-        
+
         // Start drawing
         spriteBatch.begin();
-        
+
         // Render everything in the map here, in order from lowest to highest (later things appear on top)
         // You may want to add a method to GameMap to return all the drawables in the correct order
         for (Flowers flowers : map.getFlowers()) {
@@ -118,7 +113,10 @@ public class GameScreen implements Screen {
         }
         draw(spriteBatch, map.getChest());
         draw(spriteBatch, map.getPlayer());
-        
+        for (WallPath wall : map.getWalls()) {
+            draw(spriteBatch, wall);
+        }
+
         // Finish drawing, i.e. send the drawn items to the graphics card
         spriteBatch.end();
     }
