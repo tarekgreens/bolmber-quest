@@ -84,36 +84,28 @@ public class GameMap {
 
     }
 
-
     private void addWalls(Texture indestructibleWallTexture, Texture destructibleWallTexture) {
-        // Create indestructible walls
         TextureRegion indestructibleWallRegion = new TextureRegion(indestructibleWallTexture);
+        TextureRegion destructibleWallRegion = new TextureRegion(destructibleWallTexture);
 
-        // Add indestructible walls around the border
-        int mapWidth = flowers.length;  // Assuming flowers array represents the map size
+        float wallWidth = 1f;
+        float wallHeight = 1f;
+
+        int mapWidth = flowers.length;
         int mapHeight = flowers[0].length;
 
         for (int x = 0; x < mapWidth; x++) {
-            // Top and bottom rows
-            walls.add(new IndestructibleWall(x, 0, 1, 1, indestructibleWallRegion));
-            walls.add(new IndestructibleWall(x, mapHeight - 1, 1, 1, indestructibleWallRegion));
+            walls.add(new IndestructibleWall(world, x, 0, wallWidth, wallHeight, indestructibleWallRegion));
+            walls.add(new IndestructibleWall(world, x, mapHeight - 1, wallWidth, wallHeight, indestructibleWallRegion));
         }
 
         for (int y = 0; y < mapHeight; y++) {
-            // Left and right columns
-            walls.add(new IndestructibleWall(0, y, 1, 1, indestructibleWallRegion));
-            walls.add(new IndestructibleWall(mapWidth - 1, y, 1, 1, indestructibleWallRegion));
+            walls.add(new IndestructibleWall(world, 0, y, wallWidth, wallHeight, indestructibleWallRegion));
+            walls.add(new IndestructibleWall(world, mapWidth - 1, y, wallWidth, wallHeight, indestructibleWallRegion));
         }
 
-        // Create destructible walls
-        TextureRegion destructibleWallRegion = new TextureRegion(destructibleWallTexture);
-
-        // Example of adding destructible walls in the middle of the map
-        WallPath destructibleWall1 = new DestructibleWall(2, 3, 1, 1, destructibleWallRegion);
-        walls.add(destructibleWall1);
-
-        WallPath destructibleWall2 = new DestructibleWall(4, 3, 1, 1, destructibleWallRegion);
-        walls.add(destructibleWall2);
+        walls.add(new DestructibleWall(world, 2, 3, wallWidth, wallHeight, destructibleWallRegion));
+        walls.add(new DestructibleWall(world, 4, 3, wallWidth, wallHeight, destructibleWallRegion));
     }
 
     /**

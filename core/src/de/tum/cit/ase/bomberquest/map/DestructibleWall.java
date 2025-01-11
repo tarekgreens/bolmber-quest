@@ -1,6 +1,7 @@
 package de.tum.cit.ase.bomberquest.map;
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.physics.box2d.World;
 import de.tum.cit.ase.bomberquest.texture.Drawable;
 
 /**
@@ -17,8 +18,8 @@ public class DestructibleWall extends WallPath {
      * @param height        The height of the wall.
      * @param textureRegion The TextureRegion for the static appearance of the wall.
      */
-    public DestructibleWall(float x, float y, float width, float height, TextureRegion textureRegion) {
-        super(x, y, width, height, textureRegion); // Pass textureRegion to the super constructor
+    public DestructibleWall(World world, float x, float y, float width, float height, TextureRegion textureRegion) {
+        super(world, x, y, width, height, textureRegion);
     }
 
     /**
@@ -36,6 +37,9 @@ public class DestructibleWall extends WallPath {
      */
     @Override
     public void destroy() {
-        this.isDestroyed = true;
+        if (!isDestroyed) {
+            this.isDestroyed = true;
+            body.getWorld().destroyBody(body);
+        }
     }
 }

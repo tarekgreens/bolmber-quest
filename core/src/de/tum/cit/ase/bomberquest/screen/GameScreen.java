@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
 import de.tum.cit.ase.bomberquest.map.Flowers;
+import de.tum.cit.ase.bomberquest.map.Player;
 import de.tum.cit.ase.bomberquest.map.WallPath;
 import de.tum.cit.ase.bomberquest.texture.Drawable;
 import de.tum.cit.ase.bomberquest.map.GameMap;
@@ -128,11 +129,21 @@ public class GameScreen implements Screen {
      * @param spriteBatch The SpriteBatch to draw with.
      */
     private static void draw(SpriteBatch spriteBatch, Drawable drawable) {
+        if (drawable instanceof WallPath wall && wall.isDestroyed()) {
+            return; // Skip drawing destroyed walls
+        }
         TextureRegion texture = drawable.getCurrentAppearance();
-        // Drawable coordinates are in tiles, so we need to scale them to pixels
-        float x = drawable.getX() * TILE_SIZE_PX * SCALE;
-        float y = drawable.getY() * TILE_SIZE_PX * SCALE;
-        // Additionally scale everything by the game scale
+
+        float x, y;
+        if (drawable instanceof Player) {
+            Player player = (Player) drawable;
+            x = player.getX() * TILE_SIZE_PX * SCALE - 0.3f * TILE_SIZE_PX * SCALE; // Adjust for radius
+            y = player.getY() * TILE_SIZE_PX * SCALE - 0.3f * TILE_SIZE_PX * SCALE;
+        } else {
+            x = drawable.getX() * TILE_SIZE_PX * SCALE;
+            y = drawable.getY() * TILE_SIZE_PX * SCALE;
+        }
+
         float width = texture.getRegionWidth() * SCALE;
         float height = texture.getRegionHeight() * SCALE;
         spriteBatch.draw(texture, x, y, width, height);

@@ -4,10 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.physics.box2d.Body;
-import com.badlogic.gdx.physics.box2d.BodyDef;
-import com.badlogic.gdx.physics.box2d.CircleShape;
-import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.physics.box2d.*;
 import de.tum.cit.ase.bomberquest.texture.Animations;
 import de.tum.cit.ase.bomberquest.texture.Drawable;
 
@@ -36,29 +33,26 @@ public class Player implements Drawable {
      * @return The created body.
      */
     private Body createHitbox(World world, float startX, float startY) {
-        // BodyDef is like a blueprint for the movement properties of the body.
         BodyDef bodyDef = new BodyDef();
-        // Dynamic bodies are affected by forces and collisions.
         bodyDef.type = BodyDef.BodyType.DynamicBody;
-        // Set the initial position of the body.
         bodyDef.position.set(startX, startY);
-        // Create the body in the world using the body definition.
         Body body = world.createBody(bodyDef);
-        // Now we need to give the body a shape so the physics engine knows how to collide with it.
-        // We'll use a circle shape for the player.
+
         CircleShape circle = new CircleShape();
-        // Give the circle a radius of 0.3 tiles (the player is 0.6 tiles wide).
         circle.setRadius(0.3f);
-        // Attach the shape to the body as a fixture.
-        // Bodies can have multiple fixtures, but we only need one for the player.
-        body.createFixture(circle, 1.0f);
-        // We're done with the shape, so we should dispose of it to free up memory.
-        circle.dispose();
-        // Set the player as the user data of the body so we can look up the player from the body later.
+
+        FixtureDef fixtureDef = new FixtureDef();
+        fixtureDef.shape = circle;
+        fixtureDef.density = 1.0f;
+        fixtureDef.friction = 0.5f;
+        fixtureDef.restitution = 0.0f;
+
+        body.createFixture(fixtureDef);
         body.setUserData(this);
+        circle.dispose();
         return body;
     }
-    
+
     /**
      * Move the player around in a circle by updating the linear velocity of its hitbox every frame.
      * This doesn't actually move the player, but it tells the physics engine how the player should move next frame.
@@ -66,15 +60,8 @@ public class Player implements Drawable {
      */
     public void tick(float frameTime) {
         this.elapsedTime += frameTime;
-        // Make the player move in a circle with radius 2 tiles
-        // You can change this to make the player move differently, e.g. in response to user input.
-        // See Gdx.input.isKeyPressed() for keyboard input
-        //float xVelocity = (float) Math.sin(this.elapsedTime) * 2;
-        //float yVelocity = (float) Math.cos(this.elapsedTime) * 2;
-        //this.hitbox.setLinearVelocity(xVelocity, yVelocity);
         float xVelocity = 0;
         float yVelocity = 0;
-
 
         if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
             yVelocity = 2;

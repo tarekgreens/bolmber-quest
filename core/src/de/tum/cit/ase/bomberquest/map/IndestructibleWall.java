@@ -1,6 +1,7 @@
 package de.tum.cit.ase.bomberquest.map;
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.physics.box2d.World;
 
 /**
  * IndestructibleWall is a subclass of WallPath that cannot be destroyed.
@@ -16,8 +17,8 @@ public class IndestructibleWall extends WallPath  {
      * @param height        The height of the wall.
      * @param textureRegion The TextureRegion for the static appearance of the wall.
      */
-    public IndestructibleWall(float x, float y, float width, float height, TextureRegion textureRegion) {
-        super(x, y, width, height, textureRegion);
+    public IndestructibleWall(World world, float x, float y, float width, float height, TextureRegion textureRegion) {
+        super(world, x, y, width, height, textureRegion);
     }
 
     /**

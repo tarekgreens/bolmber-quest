@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.physics.box2d.*;
 import de.tum.cit.ase.bomberquest.texture.Drawable;
 
 /**
@@ -17,6 +18,7 @@ public abstract class WallPath extends Object implements Drawable{
     protected Rectangle bounds;
     protected TextureRegion textureRegion;
     protected boolean isDestroyed;
+    protected final Body body;
 
     /**
      * Constructs a WallPath object.
@@ -27,7 +29,7 @@ public abstract class WallPath extends Object implements Drawable{
      * @param height        Height of the wall/path.
      * @param textureRegion TextureRegion to render for the wall/path.
      */
-    public WallPath(float x, float y, float width, float height, TextureRegion textureRegion) {
+    public WallPath(World world, float x, float y, float width, float height, TextureRegion textureRegion) {
         super(x, y, null);  // No animation for the wall, passing null for animation.
 
         if (textureRegion == null) {
@@ -40,6 +42,25 @@ public abstract class WallPath extends Object implements Drawable{
         this.bounds = new Rectangle(x, y, width, height);
         this.textureRegion = textureRegion;
         this.isDestroyed = false;
+
+        BodyDef bodyDef = new BodyDef();
+        bodyDef.type = BodyDef.BodyType.StaticBody;
+        bodyDef.position.set(x + width / 2, y + height / 2);
+        this.body = world.createBody(bodyDef);
+
+        PolygonShape shape = new PolygonShape();
+        shape.setAsBox(width / 2, height / 2);
+
+        FixtureDef fixtureDef = new FixtureDef();
+        fixtureDef.shape = shape;
+        fixtureDef.density = 1.0f;
+        fixtureDef.friction = 0.5f;
+        fixtureDef.restitution = 0.0f;
+
+        this.body.createFixture(fixtureDef);
+        this.body.setUserData(this);
+
+        shape.dispose();
     }
 
     /**
