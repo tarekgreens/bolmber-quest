@@ -2,7 +2,6 @@ package de.tum.cit.ase.bomberquest.map;
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.physics.box2d.World;
-import de.tum.cit.ase.bomberquest.texture.Drawable;
 
 /**
  * DestructibleWall is a subclass of WallPath that can be destroyed.
@@ -12,6 +11,7 @@ public class DestructibleWall extends WallPath {
     /**
      * Constructs a DestructibleWall with the specified position, dimensions, and texture region.
      *
+     * @param world         The Box2D world to associate the wall with.
      * @param x             The initial x-coordinate of the wall.
      * @param y             The initial y-coordinate of the wall.
      * @param width         The width of the wall.
@@ -33,11 +33,12 @@ public class DestructibleWall extends WallPath {
     }
 
     /**
-     * Destroys the wall/path by setting the isDestroyed flag to true.
+     * Destroys the wall/path by setting the isDestroyed flag to true and removing the body from the Box2D world.
+     * Ensures null safety for the body and world.
      */
     @Override
     public void destroy() {
-        if (!isDestroyed) {
+        if (!isDestroyed && body != null && body.getWorld() != null) {
             this.isDestroyed = true;
             body.getWorld().destroyBody(body);
         }

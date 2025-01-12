@@ -20,4 +20,6 @@ Added a list of walls to GameMap,
 - Adjusted GameScreen's render method to align rendering with Box2D body positions.
 
 This implementation ensures that the player cannot move through any walls, enhancing the game's collision mechanics.
+Added Javadoc in the WallPath class.
+
 
