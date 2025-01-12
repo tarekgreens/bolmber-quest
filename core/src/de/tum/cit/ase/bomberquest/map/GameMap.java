@@ -2,8 +2,6 @@ package de.tum.cit.ase.bomberquest.map;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Animation;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
@@ -11,8 +9,8 @@ import de.tum.cit.ase.bomberquest.BomberQuestGame;
 import de.tum.cit.ase.bomberquest.texture.Textures;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Represents the game map.
@@ -20,140 +18,162 @@ import java.util.List;
  */
 public class GameMap {
 
-    // A static block is executed once when the class is referenced for the first time.
-    static {
-        // Initialize the Box2D physics engine.
-        com.badlogic.gdx.physics.box2d.Box2D.init();
-    }
-
-    // Box2D physics simulation parameters (you can experiment with these if you want, but they work well as they are)
-    /**
-     * The time step for the physics simulation.
-     * This is the amount of time that the physics simulation advances by in each frame.
-     * It is set to 1/refreshRate, where refreshRate is the refresh rate of the monitor, e.g., 1/60 for 60 Hz.
-     */
-    private static final float TIME_STEP = 1f / Gdx.graphics.getDisplayMode().refreshRate;
-    /** The number of velocity iterations for the physics simulation. */
-    private static final int VELOCITY_ITERATIONS = 6;
-    /** The number of position iterations for the physics simulation. */
-    private static final int POSITION_ITERATIONS = 2;
-    /**
-     * The accumulated time since the last physics step.
-     * We use this to keep the physics simulation at a constant rate even if the frame rate is variable.
-     */
-    private float physicsTime = 0;
-
-    /** The game, in case the map needs to access it. */
     private final BomberQuestGame game;
-    /** The Box2D world for physics simulation. */
     private final World world;
-
-    // Game objects
     private final Player player;
-    private final Entrance entrance;
-    private final Chest chest;
-
-    private final Flowers[][] flowers;
-
     private final List<WallPath> walls;
-    private Texture indestructibleWallTexture;
-    private Texture destructibleWallTexture;
-    private Texture entranceTexture;
+    private Entrance entrance;
+    private Exit exit;
+    private final List<Enemy> enemies = new ArrayList<>();
+    private final List<PowerUp> powerUps = new ArrayList<>();
 
     public GameMap(BomberQuestGame game) {
         this.game = game;
         this.world = new World(Vector2.Zero, true);
-        // Create a player with initial position (1, 3)
         this.player = new Player(this.world, 1, 3);
-        entrance = new Entrance(1, 1, Textures.ENTRANCE); // Set entrance position (0, 0) as default.
-        // Create a chest in the middle of the map
-        this.chest = new Chest(world, 3, 3);
-        // Create flowers in a 7x7 grid
-        this.flowers = new Flowers[7][7];
-        for (int i = 0; i < flowers.length; i++) {
-            for (int j = 0; j < flowers[i].length; j++) {
-                this.flowers[i][j] = new Flowers(i, j);
+        this.walls = new ArrayList<>();
+    }
+
+    /**
+     * Parses a .properties map file and populates the game map with objects.
+     *
+     * @param fileContent The content of the map file.
+     * @param game        The BomberQuestGame instance.
+     * @return A fully initialized GameMap object.
+     */
+    public static GameMap parseMap(String fileContent, BomberQuestGame game) {
+        GameMap map = new GameMap(game);
+        String[] lines = fileContent.split("\n");
+        Random random = new Random();
+        boolean exitPlaced = false;
+
+        TextureRegion indestructibleWallRegion = new TextureRegion(new Texture("assets/texture/ind.png"));
+        TextureRegion destructibleWallRegion = new TextureRegion(new Texture("assets/texture/destructablewall.png"));
+        TextureRegion entranceRegion = new TextureRegion(new Texture("assets/texture/entrance.png"));
+        TextureRegion exitRegion = new TextureRegion(new Texture("assets/texture/exit.png"));
+
+        for (String line : lines) {
+            line = line.trim();
+            if (line.isEmpty() || line.startsWith("#")) continue;
+
+            String[] parts = line.split("=");
+            if (parts.length != 2) continue;
+
+            String[] coords = parts[0].split(",");
+            int x = Integer.parseInt(coords[0].trim());
+            int y = Integer.parseInt(coords[1].trim());
+            int type = Integer.parseInt(parts[1].trim());
+
+            switch (type) {
+                case 0 -> map.addWall(new IndestructibleWall(map.world, x, y, 1, 1, indestructibleWallRegion));
+                case 1 -> map.addWall(new DestructibleWall(map.world, x, y, 1, 1, destructibleWallRegion));
+                case 2 -> map.setEntrance(new Entrance(x, y, entranceRegion));
+
+                case 3 -> map.addEnemy(new Enemy(map.world, x, y, new TextureRegion(new Texture("assets/texture/enemy.png"))));
+                case 4 -> {
+                    map.setExit(new Exit(map.world, x, y, exitRegion));
+                    exitPlaced = true;
+                }
+                case 5, 6 -> {
+
+                    map.addPowerUp(new PowerUp(map.world, x, y, type, new TextureRegion(new Texture("assets/texture/powerup.png"))));
+                    map.addWall(new DestructibleWall(map.world, x, y, 1, 1, destructibleWallRegion));
+                }
             }
         }
-        // Initialize the walls list
-        this.walls = new ArrayList<>();
 
-        indestructibleWallTexture = new Texture("assets/texture/ind.png");
-        destructibleWallTexture = new Texture("assets/texture/destructablewall.png");
-
-        // Example of adding walls
-        addWalls(indestructibleWallTexture,destructibleWallTexture);
-        this.entranceTexture = new Texture("assets/texture/entrance.png");
-
-    }
-
-    private void addWalls(Texture indestructibleWallTexture, Texture destructibleWallTexture) {
-        TextureRegion indestructibleWallRegion = new TextureRegion(indestructibleWallTexture);
-        TextureRegion destructibleWallRegion = new TextureRegion(destructibleWallTexture);
-
-        float wallWidth = 1f;
-        float wallHeight = 1f;
-
-        int mapWidth = flowers.length;
-        int mapHeight = flowers[0].length;
-
-        for (int x = 0; x < mapWidth; x++) {
-            walls.add(new IndestructibleWall(world, x, 0, wallWidth, wallHeight, indestructibleWallRegion));
-            walls.add(new IndestructibleWall(world, x, mapHeight - 1, wallWidth, wallHeight, indestructibleWallRegion));
+        if (!exitPlaced) {
+            map.placeRandomExit(destructibleWallRegion, exitRegion);
         }
 
-        for (int y = 0; y < mapHeight; y++) {
-            walls.add(new IndestructibleWall(world, 0, y, wallWidth, wallHeight, indestructibleWallRegion));
-            walls.add(new IndestructibleWall(world, mapWidth - 1, y, wallWidth, wallHeight, indestructibleWallRegion));
-        }
-
-        walls.add(new DestructibleWall(world, 2, 3, wallWidth, wallHeight, destructibleWallRegion));
-        walls.add(new DestructibleWall(world, 4, 3, wallWidth, wallHeight, destructibleWallRegion));
+        return map;
     }
 
     /**
-     * Updates the game state. This is called once per frame.
-     * Every dynamic object in the game should update its state here.
-     * @param frameTime the time that has passed since the last update
+     * Adds a wall to the map.
+     *
+     * @param wall The wall to add.
      */
-    public void tick(float frameTime) {
-        this.player.tick(frameTime);
-        doPhysicsStep(frameTime);
-
+    public void addWall(WallPath wall) {
+        walls.add(wall);
     }
-
 
     /**
-     * Performs as many physics steps as necessary to catch up to the given frame time.
-     * This will update the Box2D world by the given time step.
-     * @param frameTime Time since last frame in seconds
+     * Sets the entrance point of the map.
+     *
+     * @param entrance The entrance object.
      */
-    private void doPhysicsStep(float frameTime) {
-        this.physicsTime += frameTime;
-        while (this.physicsTime >= TIME_STEP) {
-            this.world.step(TIME_STEP, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
-            this.physicsTime -= TIME_STEP;
-        }
-
+    public void setEntrance(Entrance entrance) {
+        this.entrance = entrance;
     }
 
-    /** Returns the player on the map. */
+    /**
+     * Sets the exit point of the map.
+     *
+     * @param exit The exit object.
+     */
+    public void setExit(Exit exit) {
+        this.exit = exit;
+    }
+
+    /**
+     * Places a random exit under a destructible wall if none is specified.
+     *
+     * @param destructibleWallRegion Texture region for destructible walls.
+     * @param exitRegion             Texture region for the exit.
+     */
+    private void placeRandomExit(TextureRegion destructibleWallRegion, TextureRegion exitRegion) {
+        Random random = new Random();
+        List<DestructibleWall> destructibleWalls = walls.stream()
+                .filter(w -> w instanceof DestructibleWall)
+                .map(w -> (DestructibleWall) w)
+                .toList();
+
+        if (destructibleWalls.isEmpty()) {
+            throw new IllegalStateException("No destructible walls available for placing an exit.");
+        }
+
+        DestructibleWall randomWall = destructibleWalls.get(random.nextInt(destructibleWalls.size()));
+        walls.remove(randomWall); // Remove the destructible wall
+        this.setExit(new Exit(world, randomWall.getX(), randomWall.getY(), exitRegion));
+    }
+
     public Player getPlayer() {
         return player;
     }
 
-    /** Returns the chest on the map. */
-    public Chest getChest() {
-        return chest;
-    }
-
-    /** Returns the flowers on the map. */
-    public List<Flowers> getFlowers() {
-        return Arrays.stream(flowers).flatMap(Arrays::stream).toList();
-    }
     public List<WallPath> getWalls() {
         return walls;
     }
 
+    public Entrance getEntrance() {
+        return entrance;
+    }
 
+    public Exit getExit() {
+        return exit;
+    }
+
+    /**
+     * Updates the game state.
+     *
+     * @param frameTime The time elapsed since the last frame.
+     */
+    public void tick(float frameTime) {
+        player.tick(frameTime);
+        for (Enemy enemy : enemies) {
+            enemy.update(frameTime);
+        }
+        doPhysicsStep(frameTime);
+    }
+
+    private void doPhysicsStep(float frameTime) {
+    }
+    public void addEnemy(Enemy enemy) {
+        enemies.add(enemy);
+    }
+    public void addPowerUp(PowerUp powerUp) {
+        powerUps.add(powerUp);
+    }
 }
+
