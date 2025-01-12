@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
+import de.tum.cit.ase.bomberquest.texture.Textures;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,7 +50,7 @@ public class GameMap {
 
     // Game objects
     private final Player player;
-
+    private final Entrance entrance;
     private final Chest chest;
 
     private final Flowers[][] flowers;
@@ -57,12 +58,14 @@ public class GameMap {
     private final List<WallPath> walls;
     private Texture indestructibleWallTexture;
     private Texture destructibleWallTexture;
+    private Texture entranceTexture;
 
     public GameMap(BomberQuestGame game) {
         this.game = game;
         this.world = new World(Vector2.Zero, true);
         // Create a player with initial position (1, 3)
         this.player = new Player(this.world, 1, 3);
+        entrance = new Entrance(1, 1, Textures.ENTRANCE); // Set entrance position (0, 0) as default.
         // Create a chest in the middle of the map
         this.chest = new Chest(world, 3, 3);
         // Create flowers in a 7x7 grid
@@ -80,7 +83,7 @@ public class GameMap {
 
         // Example of adding walls
         addWalls(indestructibleWallTexture,destructibleWallTexture);
-
+        this.entranceTexture = new Texture("assets/texture/entrance.png");
 
     }
 
