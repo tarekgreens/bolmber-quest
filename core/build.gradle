@@ -6,3 +6,5 @@ java {
 sourceSets.main.java.srcDirs = [ "src/" ]
 
 eclipse.project.name = appName + "-core"
+implementation "games.spooky.gdx:nativefilechooser:1.1.0"
+
