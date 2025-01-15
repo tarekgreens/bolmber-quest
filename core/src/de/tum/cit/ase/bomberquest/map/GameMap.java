@@ -58,7 +58,6 @@ public class GameMap {
     private final List<WallPath> walls;
     private Texture indestructibleWallTexture;
     private Texture destructibleWallTexture;
-    private Texture entranceTexture;
 
     public GameMap(BomberQuestGame game) {
         this.game = game;
@@ -83,7 +82,6 @@ public class GameMap {
 
         // Example of adding walls
         addWalls(indestructibleWallTexture,destructibleWallTexture);
-        this.entranceTexture = new Texture("assets/texture/entrance.png");
 
     }
 
