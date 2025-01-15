@@ -6,12 +6,11 @@ import com.badlogic.gdx.physics.box2d.World;
 /**
  * IndestructibleWall is a subclass of WallPath that cannot be destroyed.
  */
-public class IndestructibleWall extends WallPath {
+public class IndestructibleWall extends WallPath  {
 
     /**
      * Constructs an IndestructibleWall with the specified position, dimensions, and texture region.
      *
-     * @param world         The Box2D world to associate the wall with.
      * @param x             The initial x-coordinate of the wall.
      * @param y             The initial y-coordinate of the wall.
      * @param width         The width of the wall.
@@ -37,6 +36,7 @@ public class IndestructibleWall extends WallPath {
      */
     @Override
     public void destroy() {
-
+        // No action needed for indestructible walls.
     }
+
 }

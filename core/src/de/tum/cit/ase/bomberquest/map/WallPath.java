@@ -1,5 +1,6 @@
 package de.tum.cit.ase.bomberquest.map;
 
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
@@ -7,10 +8,12 @@ import com.badlogic.gdx.physics.box2d.*;
 import de.tum.cit.ase.bomberquest.texture.Drawable;
 
 /**
- * Abstract base class for all walls and paths in the Bomber Quest game.
- * Implements the {@link Drawable} interface for rendering and coordinates.
+ * WallPath is an abstract class that represents a wall or path in the game map.
+ * It no longer uses animation, and it directly handles a static texture.
  */
-public abstract class WallPath implements Drawable {
+public abstract class WallPath extends Object implements Drawable{
+
+    private static final float TILE_SIZE = 32.0f;
 
     protected Rectangle bounds;
     protected TextureRegion textureRegion;
@@ -20,22 +23,20 @@ public abstract class WallPath implements Drawable {
     /**
      * Constructs a WallPath object.
      *
-     * @param world         The Box2D world to associate the wall/path with.
-     * @param x             X position of the wall/path in the grid.
-     * @param y             Y position of the wall/path in the grid.
+     * @param x             X position of the wall/path.
+     * @param y             Y position of the wall/path.
      * @param width         Width of the wall/path.
      * @param height        Height of the wall/path.
-     * @param textureRegion The texture to render for this wall/path.
+     * @param textureRegion TextureRegion to render for the wall/path.
      */
     public WallPath(World world, float x, float y, float width, float height, TextureRegion textureRegion) {
+        super(x, y, null);  // No animation for the wall, passing null for animation.
+
         if (textureRegion == null) {
             throw new IllegalArgumentException("TextureRegion cannot be null for WallPath object.");
         }
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("Width and height must be positive.");
-        }
-        if (world == null) {
-            throw new IllegalArgumentException("World cannot be null.");
         }
 
         this.bounds = new Rectangle(x, y, width, height);
@@ -63,43 +64,14 @@ public abstract class WallPath implements Drawable {
     }
 
     /**
-     * Gets the current appearance of the WallPath.
-     *
-     * @return The texture region representing the appearance of the WallPath.
-     */
-    @Override
-    public TextureRegion getCurrentAppearance() {
-        return textureRegion;
-    }
-
-    /**
-     * Gets the X coordinate of the WallPath.
-     *
-     * @return The X coordinate (bottom-left corner) in tile coordinates.
-     */
-    @Override
-    public float getX() {
-        return bounds.x;
-    }
-
-    /**
-     * Gets the Y coordinate of the WallPath.
-     *
-     * @return The Y coordinate (bottom-left corner) in tile coordinates.
-     */
-    @Override
-    public float getY() {
-        return bounds.y;
-    }
-
-    /**
      * Renders the wall/path if it is not destroyed.
      *
      * @param batch The SpriteBatch used to draw the texture.
      */
-    public void draw(SpriteBatch batch) {
+    @Override
+    public void draw(SpriteBatch batch, float x, float y, float delta, float width, float height) {
         if (!isDestroyed && textureRegion != null) {
-            batch.draw(textureRegion, bounds.x, bounds.y, bounds.width, bounds.height);
+            batch.draw(textureRegion, x, y, width, height);
         }
     }
 
@@ -138,7 +110,12 @@ public abstract class WallPath implements Drawable {
      */
     public void dispose() {
         if (textureRegion != null) {
+            // Optionally dispose the texture associated with the texture region
             textureRegion.getTexture().dispose();
         }
     }
+    public TextureRegion getCurrentAppearance() {
+        return textureRegion;
+    }
+
 }
