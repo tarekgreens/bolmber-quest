@@ -1,4 +1,4 @@
-/*package de.tum.cit.ase.bomberquest.screen;
+package de.tum.cit.ase.bomberquest.screen;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
@@ -13,10 +13,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
 
-
+/**
  * The VictoryScreen class represents the screen displayed when the player achieves victory.
  * It provides options to return to the main menu.
-
+ */
 public class VictoryScreen implements Screen {
 
     private final BomberQuestGame game;
@@ -30,7 +30,7 @@ public class VictoryScreen implements Screen {
      * @param game           The main game instance
      * @param previousScreen The previous screen to potentially return to
      * @param skin          The skin used for UI elements
-
+     */
     public VictoryScreen(BomberQuestGame game, Screen previousScreen, Skin skin) {
         this.game = game;
         this.previousScreen = previousScreen;
@@ -55,7 +55,7 @@ public class VictoryScreen implements Screen {
                 Actions.fadeOut(0.7f)
         )));
 
-        // Create and add the back to menu buttona
+        // Create and add the back to menu button
         TextButton backToMenuButton = new TextButton("Return to Menu", skin);
         table.add(backToMenuButton).padBottom(20).row();
 
@@ -106,5 +106,5 @@ public class VictoryScreen implements Screen {
         }
     }
     //test
+    //sync
 }
-*/
