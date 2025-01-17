@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 
 /**
- * The GameObject class serves as a base class for game objects in the scene.(Enemy, Entrance, Exit, Heart, Key, PlayerCharacter, Trap, Wall)
+ * The GameObject class serves as a base class for game objects in the scene.(Enemy, Entrance, Exit)
  * It extends the LibGDX Actor class and provides common properties and methods for game objects.
  *
  * @see com.badlogic.gdx.scenes.scene2d.Actor
