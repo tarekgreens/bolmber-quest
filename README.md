@@ -21,3 +21,11 @@ Added a list of walls to GameMap,
 
 This implementation ensures that the player cannot move through any walls, enhancing the game's collision mechanics.
 
+Added the Exit class:
+it has methods reveal, isVisible and locked.
+Every Exit has a wall above it and is unlocked once all of the enemies are killed.
+
+Entrance class is created.
+Textures for both of the classes are created
+
+Bomb class is created, but is empty.

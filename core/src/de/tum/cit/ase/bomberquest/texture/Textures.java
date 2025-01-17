@@ -17,3 +17,4 @@ public class Textures {
     public static final TextureRegion EXIT = SpriteSheet.BASIC_TILES.at(2,4);
     
 }
+
