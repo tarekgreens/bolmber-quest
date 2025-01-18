@@ -33,55 +33,35 @@ public class GameMap {
      * It is set to 1/refreshRate, where refreshRate is the refresh rate of the monitor, e.g., 1/60 for 60 Hz.
      */
     private static final float TIME_STEP = 1f / Gdx.graphics.getDisplayMode().refreshRate;
-    /** The number of velocity iterations for the physics simulation. */
     private static final int VELOCITY_ITERATIONS = 6;
-    /** The number of position iterations for the physics simulation. */
     private static final int POSITION_ITERATIONS = 2;
-    /**
-     * The accumulated time since the last physics step.
-     * We use this to keep the physics simulation at a constant rate even if the frame rate is variable.
-     */
     private float physicsTime = 0;
 
-    /** The game, in case the map needs to access it. */
     private final BomberQuestGame game;
-    /** The Box2D world for physics simulation. */
     private final World world;
-
-    // Game objects
     private final Player player;
+
     private Entrance entrance;
     private Exit exit;
-    private final Chest chest;
-
+    private final Chest chest; // if used
     private final Flowers[][] flowers;
 
     private final List<WallPath> walls;
     private List<Enemy> enemies;
-    private final List<PowerUp> powerUps = new ArrayList<>();
-    private Texture indestructibleWallTexture;
-    private Texture destructibleWallTexture;
+    private final List<PowerUp> powerUps;
+    private final List<Bomb> bombs;
 
     public GameMap(BomberQuestGame game) {
         this.game = game;
         this.world = new World(Vector2.Zero, true);
 
-        this.entrance = null;
-        this.exit = null;
-
-        // Create the player (so we have it ready for when the entrance is parsed).
-        this.player = new Player(this.world, 0, 0);
-
+        this.player = new Player(this.world, 0, 0, this);
         this.enemies = new ArrayList<>();
-
-        // Initialize empty data structures:
         this.walls = new ArrayList<>();
-        this.chest= null;
-        this.entrance = null;
+        this.chest = null;   // or spawn if needed
         this.flowers = new Flowers[1][4];
-
-        indestructibleWallTexture = new Texture("assets/texture/ind.png");
-        destructibleWallTexture = new Texture("assets/texture/destructablewall.png");
+        this.powerUps = new ArrayList<>();
+        this.bombs = new ArrayList<>();
     }
 
     public Entrance getEntrance() {
@@ -101,40 +81,44 @@ public class GameMap {
     }
 
 
-    /**
-     * Updates the game state. This is called once per frame.
-     * Every dynamic object in the game should update its state here.
-     * @param frameTime the time that has passed since the last update
-     */
     public void tick(float frameTime) {
-        this.player.tick(frameTime);
+        // 1) Let player handle input
+        player.tick(frameTime);
+
+        // 2) Step the physics simulation
         doPhysicsStep(frameTime);
 
-        // If we have an exit and it’s not unlocked yet, check if all enemies are dead
-        if (exit != null && !exit.isUnlocked() && allEnemiesDead()) {
-            exit.unlockExit();
+        // 3) Update bombs (check fuse timers, etc.)
+        List<Bomb> toRemove = new ArrayList<>();
+        for (Bomb bomb : bombs) {
+            bomb.update(frameTime, this);
+            if (bomb.isExploded()) {
+                toRemove.add(bomb);
+            }
         }
+        bombs.removeAll(toRemove);
+    }
+
+    private void doPhysicsStep(float frameTime) {
+        physicsTime += frameTime;
+        while (physicsTime >= TIME_STEP) {
+            world.step(TIME_STEP, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
+            physicsTime -= TIME_STEP;
+        }
+    }
+
+    public void addBomb(Bomb bomb) {
+        this.bombs.add(bomb);
+    }
+
+    public List<Bomb> getBombs() {
+        return bombs;
     }
 
     private boolean allEnemiesDead() {
         // If you remove enemies from `enemies` when they die, this is as simple as checking size=0
         // Or check an isAlive flag in each enemy if you keep them around.
         return enemies.isEmpty();
-    }
-
-
-    /**
-     * Performs as many physics steps as necessary to catch up to the given frame time.
-     * This will update the Box2D world by the given time step.
-     * @param frameTime Time since last frame in seconds
-     */
-    private void doPhysicsStep(float frameTime) {
-        this.physicsTime += frameTime;
-        while (this.physicsTime >= TIME_STEP) {
-            this.world.step(TIME_STEP, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
-            this.physicsTime -= TIME_STEP;
-        }
-
     }
 
     /** Returns the player on the map. */

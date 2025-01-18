@@ -1028,7 +1028,7 @@ public class GameMap {
     }
 
         private void spawnIndestructibleWall(int x, int y) {
-        TextureRegion wallTexture = new TextureRegion(new Texture("assets/texture/ind.png"));
+        TextureRegion wallTexture = new TextureRegion(Textures.INDEST_WALL);
         float wallWidth = 1f;
         float wallHeight = 1f;
         IndestructibleWall wall = new IndestructibleWall(
@@ -1081,14 +1081,14 @@ public class GameMap {
     private void spawnEnemy(int x, int y) {
         // This is a placeholder. You might do real logic like new Enemy(world, x, y, someTexture)
         // For now, let's just store a dummy instance in enemies list.
-        TextureRegion concurrencyRegion = new TextureRegion(new Texture("assets/texture/powerup.png"));
+        TextureRegion concurrencyRegion = new TextureRegion(Textures.ENEMY);
         Enemy e = new Enemy(world, x, y, 3, concurrencyRegion);
         // e.setX(x); e.setY(y); or actual Box2D logic if you prefer
         enemies.add(e);
     }
 
     private void spawnConcurrentPowerUp(int x, int y) {
-        TextureRegion concurrencyRegion = new TextureRegion(new Texture("assets/texture/powerup.png"));
+        TextureRegion concurrencyRegion = new TextureRegion(Textures.POWER_UP);
         PowerUp p = new PowerUp(world, x, y, 5, concurrencyRegion);
         powerUps.add(p);
     }
@@ -2107,6 +2107,8 @@ public class Textures {
     public static final TextureRegion CHEST = SpriteSheet.BASIC_TILES.at(5, 5);
     public static final TextureRegion ENTRANCE = SpriteSheet.BASIC_TILES.at(4, 6);
     public static final TextureRegion EXIT = SpriteSheet.BASIC_TILES.at(2,4);
+    public static final TextureRegion POWER_UP = SpriteSheet.BASIC_TILES.at(3,3);
+    public static final TextureRegion ENEMY = SpriteSheet.CHARACTER.at(3,1);
     
 }
 
@@ -2120,6 +2122,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
+import de.tum.cit.ase.bomberquest.map.PowerUp;
+
 /**
  * Enumerates all spritesheets used in the game and provides helper methods for grabbing texture regions from them.
  * It is assumed that every spritesheet has some standard grid size which can be used for easier coordinate specification.
@@ -2132,11 +2136,13 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 public enum SpriteSheet {
     
     /** The character spritesheet, which has a grid size of 16x32. */
-    CHARACTER("character.png", 16, 32),
+    CHARACTER("character.png", 16, 20),
     /** The basic tiles spritesheet, which has a grid size of 16x16. */
-    BASIC_TILES("basictiles.png", 16, 16);
+    BASIC_TILES("basictiles.png", 16, 16),
+
+    POWER_UP("powerup.png", 16, 16);
     
-    private final Texture spritesheet;
+private final Texture spritesheet;
     private final int width;
     private final int height;
     

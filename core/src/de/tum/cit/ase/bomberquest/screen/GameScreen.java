@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
+import de.tum.cit.ase.bomberquest.map.Bomb;
 import de.tum.cit.ase.bomberquest.map.Enemy;
 import de.tum.cit.ase.bomberquest.map.Flowers;
 import de.tum.cit.ase.bomberquest.map.Player;
@@ -124,6 +125,10 @@ public class GameScreen implements Screen {
         if (wall != null) {
             draw(spriteBatch, wall);
         }
+    }
+
+    for (Bomb b : map.getBombs()) {
+        b.render(spriteBatch);
     }
 
     if (map.getEntrance() != null) {
