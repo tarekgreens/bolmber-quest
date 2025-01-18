@@ -15,6 +15,8 @@ public class Textures {
     public static final TextureRegion CHEST = SpriteSheet.BASIC_TILES.at(5, 5);
     public static final TextureRegion ENTRANCE = SpriteSheet.BASIC_TILES.at(4, 6);
     public static final TextureRegion EXIT = SpriteSheet.BASIC_TILES.at(2,4);
+    public static final TextureRegion POWER_UP = SpriteSheet.BASIC_TILES.at(3,3);
+    public static final TextureRegion ENEMY = SpriteSheet.CHARACTER.at(3,1);
     
 }
 

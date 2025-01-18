@@ -278,14 +278,14 @@ public class GameMap {
     private void spawnEnemy(int x, int y) {
         // This is a placeholder. You might do real logic like new Enemy(world, x, y, someTexture)
         // For now, let's just store a dummy instance in enemies list.
-        TextureRegion concurrencyRegion = new TextureRegion(new Texture("assets/texture/powerup.png"));
+        TextureRegion concurrencyRegion = new TextureRegion(Textures.ENEMY);
         Enemy e = new Enemy(world, x, y, 3, concurrencyRegion);
         // e.setX(x); e.setY(y); or actual Box2D logic if you prefer
         enemies.add(e);
     }
 
     private void spawnConcurrentPowerUp(int x, int y) {
-        TextureRegion concurrencyRegion = new TextureRegion(new Texture("assets/texture/powerup.png"));
+        TextureRegion concurrencyRegion = new TextureRegion(Textures.POWER_UP);
         PowerUp p = new PowerUp(world, x, y, 5, concurrencyRegion);
         powerUps.add(p);
     }

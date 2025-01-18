@@ -4,6 +4,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
+import de.tum.cit.ase.bomberquest.map.PowerUp;
+
 /**
  * Enumerates all spritesheets used in the game and provides helper methods for grabbing texture regions from them.
  * It is assumed that every spritesheet has some standard grid size which can be used for easier coordinate specification.
@@ -16,11 +18,13 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 public enum SpriteSheet {
     
     /** The character spritesheet, which has a grid size of 16x32. */
-    CHARACTER("character.png", 16, 32),
+    CHARACTER("character.png", 16, 20),
     /** The basic tiles spritesheet, which has a grid size of 16x16. */
-    BASIC_TILES("basictiles.png", 16, 16);
+    BASIC_TILES("basictiles.png", 16, 16),
+
+    POWER_UP("powerup.png", 16, 16);
     
-    private final Texture spritesheet;
+private final Texture spritesheet;
     private final int width;
     private final int height;
     
