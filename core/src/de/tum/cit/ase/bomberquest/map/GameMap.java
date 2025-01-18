@@ -85,10 +85,10 @@ public class GameMap {
         // 1) Let player handle input
         player.tick(frameTime);
 
-        // 2) Step the physics simulation
+        // 2) Update physics (player movement, collisions)
         doPhysicsStep(frameTime);
 
-        // 3) Update bombs (check fuse timers, etc.)
+        // 3) Update bombs
         List<Bomb> toRemove = new ArrayList<>();
         for (Bomb bomb : bombs) {
             bomb.update(frameTime, this);
@@ -97,6 +97,11 @@ public class GameMap {
             }
         }
         bombs.removeAll(toRemove);
+
+        // 4) If there's an exit, check if all enemies dead => unlock
+        if (exit != null && !exit.isUnlocked() && allEnemiesDead()) {
+            exit.unlockExit();
+        }
     }
 
     private void doPhysicsStep(float frameTime) {
@@ -116,8 +121,6 @@ public class GameMap {
     }
 
     private boolean allEnemiesDead() {
-        // If you remove enemies from `enemies` when they die, this is as simple as checking size=0
-        // Or check an isAlive flag in each enemy if you keep them around.
         return enemies.isEmpty();
     }
 

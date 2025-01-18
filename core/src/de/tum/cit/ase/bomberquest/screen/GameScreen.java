@@ -43,6 +43,8 @@ public class GameScreen implements Screen {
     private final GameMap map;
     private final Hud hud;
     private final OrthographicCamera mapCamera;
+    // For countdown
+    private float levelTime = 300f; // 5 minutes
 
 
     /**
@@ -54,11 +56,11 @@ public class GameScreen implements Screen {
         this.game = game;
         this.spriteBatch = game.getSpriteBatch();
         this.map = game.getMap();
-        this.hud = new Hud(spriteBatch, game.getSkin().getFont("font"));
         // Create and configure the camera for the game view
         this.mapCamera = new OrthographicCamera();
         this.mapCamera.setToOrtho(false);
-
+        // Create the HUD and pass references it needs
+        this.hud = new Hud(game.getSpriteBatch(), game.getSkin().getFont("font"), this.map);
     }
     
     /**
@@ -74,6 +76,12 @@ public class GameScreen implements Screen {
         
         // Clear the previous frame from the screen, or else the picture smears
         ScreenUtils.clear(Color.WHITE);
+
+         // Decrement countdown
+         levelTime -= deltaTime;
+         if (levelTime < 0f) {
+             levelTime = 0f;
+         }
         
         // Cap frame time to 250ms to prevent spiral of death
         float frameTime = Math.min(deltaTime, 0.250f);
@@ -83,12 +91,23 @@ public class GameScreen implements Screen {
         
         // Update the camera
         updateCamera();
+
+        // Render the map
+        game.getSpriteBatch().setProjectionMatrix(mapCamera.combined);
+        game.getSpriteBatch().begin();
         
         // Render the map on the screen
         renderMap();
+
+        game.getSpriteBatch().end();
+
+        // Finally, render the HUD on top
+        hud.setTimeRemaining(levelTime); // pass updated time to the HUD
         
         // Render the HUD on the screen
         hud.render();
+
+
     }
 
 
@@ -107,8 +126,7 @@ public class GameScreen implements Screen {
         // This configures the spriteBatch to use the camera's perspective when rendering
         spriteBatch.setProjectionMatrix(mapCamera.combined);
 
-        // Start drawing
-        spriteBatch.begin();
+
 
 
     if (map.getChest() != null) {
@@ -142,9 +160,6 @@ public class GameScreen implements Screen {
     }
 
     draw(spriteBatch, map.getExit());
-
-    // Finish drawing, i.e. send the drawn items to the graphics card
-    spriteBatch.end();
     }
     /**
      * Draws this object on the screen.

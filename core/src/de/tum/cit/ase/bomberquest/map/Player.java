@@ -148,6 +148,15 @@ public class Player implements Drawable {
         return hitbox.getPosition().y;
     }
 
+    public int getBombRadius() {
+        return bombRadius;
+    }
+
+    public int getBombCapacity() {
+        return bombCapacity;
+    }
+
+
     public void render(SpriteBatch batch) {
         // Draw the player's current sprite at (x, y)
         batch.draw(getCurrentAppearance(), getX(), getY(), 1f, 1f);
