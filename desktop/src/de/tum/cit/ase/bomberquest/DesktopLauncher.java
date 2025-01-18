@@ -32,6 +32,7 @@ public class DesktopLauncher {
 		config.useVsync(true); // Enable vertical sync
 		config.setForegroundFPS(60); // Set the foreground frames per second
 
+		System.out.println("Working directory: " + System.getProperty("user.dir"));
 
 		// Launch the game
 		new Lwjgl3Application(new BomberQuestGame(new DesktopFileChooser()), config);

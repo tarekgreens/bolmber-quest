@@ -33,7 +33,7 @@ public class GameScreen implements Screen {
      * The scale of the game.
      * This is used to make everything in the game look bigger or smaller.
      */
-    public static final int SCALE = 4;
+    public static final int SCALE = 2;
 
     private final BomberQuestGame game;
     private final SpriteBatch spriteBatch;
@@ -95,9 +95,9 @@ public class GameScreen implements Screen {
      */
     private void updateCamera() {
         mapCamera.setToOrtho(false);
-        mapCamera.position.x = 3.5f * TILE_SIZE_PX * SCALE;
-        mapCamera.position.y = 3.5f * TILE_SIZE_PX * SCALE;
-        mapCamera.update(); // This is necessary to apply the changes
+        mapCamera.position.x = 19.5f * TILE_SIZE_PX * SCALE;
+        mapCamera.position.y = 11.5f * TILE_SIZE_PX * SCALE;
+        mapCamera.update();
     }
     
     private void renderMap() {
@@ -107,21 +107,27 @@ public class GameScreen implements Screen {
         // Start drawing
         spriteBatch.begin();
 
-        // Render everything in the map here, in order from lowest to highest (later things appear on top)
-        // You may want to add a method to GameMap to return all the drawables in the correct order
-        for (Flowers flowers : map.getFlowers()) {
-            draw(spriteBatch, flowers);
-        }
+
+    if (map.getChest() != null) {
         draw(spriteBatch, map.getChest());
+    }
+
+    // Player should never be null if you instantiate it, but just in case:
+    if (map.getPlayer() != null) {
         draw(spriteBatch, map.getPlayer());
-        for (WallPath wall : map.getWalls()) {
+    }
+
+    // For walls, skip null entries
+    for (WallPath wall : map.getWalls()) {
+        if (wall != null) {
             draw(spriteBatch, wall);
         }
+    }
+
 
         // Finish drawing, i.e. send the drawn items to the graphics card
         spriteBatch.end();
     }
-    
     /**
      * Draws this object on the screen.
      * The texture will be scaled by the game scale and the tile size.

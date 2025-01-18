@@ -78,6 +78,10 @@ public class Player implements Drawable {
         this.hitbox.setLinearVelocity(xVelocity, yVelocity);
     }
 
+    public Body getHitbox() {
+        return hitbox;
+    }
+
     
     @Override
     public TextureRegion getCurrentAppearance() {

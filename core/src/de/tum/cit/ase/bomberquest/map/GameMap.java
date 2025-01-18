@@ -50,7 +50,7 @@ public class GameMap {
 
     // Game objects
     private final Player player;
-    private final Entrance entrance;
+    private Entrance entrance;
     private final Chest chest;
 
     private final Flowers[][] flowers;
@@ -62,51 +62,18 @@ public class GameMap {
     public GameMap(BomberQuestGame game) {
         this.game = game;
         this.world = new World(Vector2.Zero, true);
-        // Create a player with initial position (1, 3)
-        this.player = new Player(this.world, 1, 3);
-        entrance = new Entrance(1, 1, Textures.ENTRANCE); // Set entrance position (0, 0) as default.
-        // Create a chest in the middle of the map
-        this.chest = new Chest(world, 3, 3);
-        // Create flowers in a 7x7 grid
-        this.flowers = new Flowers[7][7];
-        for (int i = 0; i < flowers.length; i++) {
-            for (int j = 0; j < flowers[i].length; j++) {
-                this.flowers[i][j] = new Flowers(i, j);
-            }
-        }
-        // Initialize the walls list
+    
+        // Create the player (so we have it ready for when the entrance is parsed).
+        this.player = new Player(this.world, 0, 0);
+        
+        // Initialize empty data structures:
         this.walls = new ArrayList<>();
+        this.chest= null;
+        this.entrance = null;
+        this.flowers = new Flowers[1][4];
 
         indestructibleWallTexture = new Texture("assets/texture/ind.png");
         destructibleWallTexture = new Texture("assets/texture/destructablewall.png");
-
-        // Example of adding walls
-        addWalls(indestructibleWallTexture,destructibleWallTexture);
-
-    }
-
-    private void addWalls(Texture indestructibleWallTexture, Texture destructibleWallTexture) {
-        TextureRegion indestructibleWallRegion = new TextureRegion(indestructibleWallTexture);
-        TextureRegion destructibleWallRegion = new TextureRegion(destructibleWallTexture);
-
-        float wallWidth = 1f;
-        float wallHeight = 1f;
-
-        int mapWidth = flowers.length;
-        int mapHeight = flowers[0].length;
-
-        for (int x = 0; x < mapWidth; x++) {
-            walls.add(new IndestructibleWall(world, x, 0, wallWidth, wallHeight, indestructibleWallRegion));
-            walls.add(new IndestructibleWall(world, x, mapHeight - 1, wallWidth, wallHeight, indestructibleWallRegion));
-        }
-
-        for (int y = 0; y < mapHeight; y++) {
-            walls.add(new IndestructibleWall(world, 0, y, wallWidth, wallHeight, indestructibleWallRegion));
-            walls.add(new IndestructibleWall(world, mapWidth - 1, y, wallWidth, wallHeight, indestructibleWallRegion));
-        }
-
-        walls.add(new DestructibleWall(world, 2, 3, wallWidth, wallHeight, destructibleWallRegion));
-        walls.add(new DestructibleWall(world, 4, 3, wallWidth, wallHeight, destructibleWallRegion));
     }
 
     /**
@@ -153,5 +120,130 @@ public class GameMap {
         return walls;
     }
 
+    public void loadFromProperties(String relativePath) {
+        String fileContent = Gdx.files.internal(relativePath).readString();
+        String[] lines = fileContent.split("\\r?\\n");
 
+        for (String line : lines) {
+            line = line.trim();
+            if (line.isEmpty() || line.startsWith("#")) {
+                continue;
+            }
+
+            String[] parts = line.split("=");
+            if (parts.length < 2) {
+                continue;
+            }
+            String key = parts[0].trim();
+            String val = parts[1].trim();
+
+            // 5. Split key into coordinates x,y
+            String[] coords = key.split(",");
+            if (coords.length < 2) {
+                continue; // malformed coordinates
+            }
+            int x = Integer.parseInt(coords[0]);
+            int y = Integer.parseInt(coords[1]);
+            
+            // 6. Parse the object type
+            int type = Integer.parseInt(val);
+    
+            // 7. Create objects in the Box2D world
+            switch (type) {
+                case 0:
+                    // 0 = Indestructible wall
+                    spawnIndestructibleWall(x, y);
+                    break;
+                case 1:
+                    // 1 = Destructible wall
+                    spawnDestructibleWall(x, y);
+                    break;
+                case 2:
+                    // 2 = Entrance
+                    spawnEntrance(x, y);
+                    break;
+                case 3:
+                    // 3 = Enemy
+                    spawnEnemy(x, y);
+                    break;
+                case 4:
+                    // 4 = Exit (with destructible wall on top)
+                    spawnExit(x, y);
+                    break;
+                case 5:
+                    // 5 = Concurrent bomb power-up (also under destructible wall)
+                    spawnConcurrentPowerUp(x, y);
+                    break;
+                case 6:
+                    // 6 = Blast radius power-up (also under destructible wall)
+                    spawnBlastRadiusPowerUp(x, y);
+                    break;
+                default:
+                    System.out.println("Unknown map object type: " + type);
+                    break;
+            }
+        }
+    
+        // 8. If no exit was found, pick a random destructible wall to hide an exit
+        //    (only if you want to fulfill the rule that a map might not specify exit).
+        ensureExitIfMissing();
+    }
+
+        private void spawnIndestructibleWall(int x, int y) {
+        TextureRegion wallTexture = new TextureRegion(new Texture("assets/texture/ind.png"));
+        float wallWidth = 1f;
+        float wallHeight = 1f;
+        IndestructibleWall wall = new IndestructibleWall(
+            this.world, x, y,
+            wallWidth, wallHeight,
+            wallTexture
+        );
+        this.walls.add(wall);
+    }
+
+    private void spawnDestructibleWall(int x, int y) {
+        TextureRegion wallTexture = new TextureRegion(new Texture("assets/texture/destructablewall.png"));
+        float wallWidth = 1f;
+        float wallHeight = 1f;
+        DestructibleWall wall = new DestructibleWall(
+            this.world, x, y,
+            wallWidth, wallHeight,
+            wallTexture
+        );
+        this.walls.add(wall);
+    }
+
+    private void spawnEntrance(int x, int y) {
+        // This sets the player's spawn location or store it separately
+        // If you want only 1 entrance, you could do:
+        this.entrance = new Entrance(x, y, Textures.ENTRANCE);
+        // Possibly position the player here
+        this.player.getHitbox().setTransform(x, y, 0);
+    }
+
+    private void spawnExit(int x, int y) {
+        // Typically you hide the exit behind a destructible wall. 
+        // One approach is to spawn a destructible wall at (x,y) AND keep track 
+        // that the exit is "under" that wall. You might store it in a dedicated list or object.
+    }
+
+    private void spawnEnemy(int x, int y) {
+        // Create an Enemy body in the Box2D world at (x, y)
+        // Add it to a list of enemies
+    }
+
+    private void spawnConcurrentPowerUp(int x, int y) {
+        // Usually you also spawn a destructible wall on top. 
+        // Keep track of the power-up so that once the wall is destroyed, 
+        // the power-up can be revealed.
+    }
+
+    private void spawnBlastRadiusPowerUp(int x, int y) {
+        // Same concept as concurrency power-up, but different type.
+    }
+
+    private void ensureExitIfMissing() {
+        // Check if you spawned an exit at all.
+        // If not, pick a random destructible wall from `walls` to place an exit under it.
+    }
 }
