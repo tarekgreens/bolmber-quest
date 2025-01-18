@@ -9,8 +9,10 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
+import de.tum.cit.ase.bomberquest.map.Enemy;
 import de.tum.cit.ase.bomberquest.map.Flowers;
 import de.tum.cit.ase.bomberquest.map.Player;
+import de.tum.cit.ase.bomberquest.map.PowerUp;
 import de.tum.cit.ase.bomberquest.map.WallPath;
 import de.tum.cit.ase.bomberquest.texture.Drawable;
 import de.tum.cit.ase.bomberquest.map.GameMap;
@@ -70,7 +72,7 @@ public class GameScreen implements Screen {
         }
         
         // Clear the previous frame from the screen, or else the picture smears
-        ScreenUtils.clear(Color.BLACK);
+        ScreenUtils.clear(Color.WHITE);
         
         // Cap frame time to 250ms to prevent spiral of death
         float frameTime = Math.min(deltaTime, 0.250f);
@@ -124,9 +126,20 @@ public class GameScreen implements Screen {
         }
     }
 
+    if (map.getEntrance() != null) {
+        draw(spriteBatch, map.getEntrance());
+    }
+    for (Enemy e : map.getEnemies()) {
+        draw(spriteBatch, e);
+    }
+    for (PowerUp p : map.getPowerUps()) {
+        draw(spriteBatch, p);
+    }
 
-        // Finish drawing, i.e. send the drawn items to the graphics card
-        spriteBatch.end();
+    draw(spriteBatch, map.getExit());
+
+    // Finish drawing, i.e. send the drawn items to the graphics card
+    spriteBatch.end();
     }
     /**
      * Draws this object on the screen.
@@ -139,6 +152,12 @@ public class GameScreen implements Screen {
             return; // Skip drawing destroyed walls
         }
         TextureRegion texture = drawable.getCurrentAppearance();
+
+        if (texture == null) {
+            System.out.println("DEBUG: getCurrentAppearance() is null for " + drawable.getClass().getSimpleName()
+                + " => x=" + drawable.getX() + " y=" + drawable.getY());
+            return;  // skip drawing, avoid NPE
+        }
 
         float x, y;
         if (drawable instanceof Player) {

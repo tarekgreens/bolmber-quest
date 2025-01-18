@@ -14,7 +14,7 @@ tasks.register('run', JavaExec) {
     mainClass = project.mainClassName
     classpath = sourceSets.main.runtimeClasspath
     standardInput = System.in
-    workingDir = project.assetsDir
+    workingDir = file("../")
     ignoreExitValue = true
 
     if (OperatingSystem.current() == OperatingSystem.MAC_OS) {
@@ -28,7 +28,7 @@ tasks.register('debug', JavaExec) {
     mainClass = project.mainClassName
     classpath = sourceSets.main.runtimeClasspath
     standardInput = System.in
-    workingDir = project.assetsDir
+    workingDir = file("../")
     ignoreExitValue = true
     debug = true
 }

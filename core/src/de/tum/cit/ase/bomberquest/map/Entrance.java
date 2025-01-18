@@ -3,6 +3,8 @@ package de.tum.cit.ase.bomberquest.map;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
+import de.tum.cit.ase.bomberquest.texture.Drawable;
+
 /**
  * The Entrance class represents the starting point of the player in the game.
  * It extends the Object class and provides functionality specific to the entrance object.
@@ -12,7 +14,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
  *
  * @see Object
  */
-public class Entrance extends Object {
+public class Entrance extends Object implements Drawable {
 
     /**
      * Constructs an Entrance object with the specified position and texture region.
@@ -50,5 +52,21 @@ public class Entrance extends Object {
     @Override
     public void update(float delta) {
         // No dynamic updates needed for the entrance.
+    }
+
+    @Override
+    public TextureRegion getCurrentAppearance() {
+        // just return this.textureRegion
+        return textureRegion;
+    }
+
+    @Override
+    public float getX() {
+        return x;  // ‘x’ is inherited from parent
+    }
+
+    @Override
+    public float getY() {
+        return y;
     }
 }

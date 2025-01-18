@@ -9,10 +9,12 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
 
+import de.tum.cit.ase.bomberquest.texture.Drawable;
+
 /**
  * Represents the exit point in the game.
  */
-public class Exit extends Object{
+public class Exit extends Object implements Drawable {
     /** A flag indicating whether the exit has been unlocked (all enemies defeated). */
     private boolean unlocked;
 
@@ -27,11 +29,14 @@ public class Exit extends Object{
      *
      * @param x           The x-coordinate of the exit.
      * @param y           The y-coordinate of the exit.
-     * @param animation   The animation representing the exit's appearance.
+     * @param textureRegion  The animation representing the exit's appearance.
      * @param wallAboveExit  The wall above the exit that must be destroyed to reveal the exit.
      */
-    public Exit(float x, float y, Animation<TextureRegion> animation, WallPath wallAboveExit) {
-        super(x, y, animation);
+    public Exit(float x, float y, TextureRegion textureRegion, WallPath wallAboveExit) {
+        super(x, y, null);
+        this.textureRegion = textureRegion; // Set the visual representation of the entrance.
+        this.width = 64; // Default width
+        this.height = 64; // Default height
         this.wallAboveExit = wallAboveExit;
         this.unlocked = false;
         this.revealed = false;
@@ -105,5 +110,20 @@ public class Exit extends Object{
 
     public void setWallAboveExit(WallPath wallAboveExit) {
         this.wallAboveExit = wallAboveExit;
+    }
+    @Override
+    public TextureRegion getCurrentAppearance() {
+        // just return this.textureRegion
+        return textureRegion;
+    }
+
+    @Override
+    public float getX() {
+        return x;  // ‘x’ is inherited from parent
+    }
+
+    @Override
+    public float getY() {
+        return y;
     }
 }

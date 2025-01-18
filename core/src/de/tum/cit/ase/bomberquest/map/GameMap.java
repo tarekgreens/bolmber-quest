@@ -51,21 +51,29 @@ public class GameMap {
     // Game objects
     private final Player player;
     private Entrance entrance;
+    private Exit exit;
     private final Chest chest;
 
     private final Flowers[][] flowers;
 
     private final List<WallPath> walls;
+    private List<Enemy> enemies;
+    private final List<PowerUp> powerUps = new ArrayList<>();
     private Texture indestructibleWallTexture;
     private Texture destructibleWallTexture;
 
     public GameMap(BomberQuestGame game) {
         this.game = game;
         this.world = new World(Vector2.Zero, true);
-    
+
+        this.entrance = null;
+        this.exit = null;
+
         // Create the player (so we have it ready for when the entrance is parsed).
         this.player = new Player(this.world, 0, 0);
-        
+
+        this.enemies = new ArrayList<>();
+
         // Initialize empty data structures:
         this.walls = new ArrayList<>();
         this.chest= null;
@@ -76,6 +84,23 @@ public class GameMap {
         destructibleWallTexture = new Texture("assets/texture/destructablewall.png");
     }
 
+    public Entrance getEntrance() {
+        return entrance;
+    }
+
+    public Exit getExit() {
+        return exit;
+    }
+
+    public List<Enemy> getEnemies() {
+        return enemies;
+    }
+
+    public List<PowerUp> getPowerUps() {
+        return powerUps;
+    }
+
+
     /**
      * Updates the game state. This is called once per frame.
      * Every dynamic object in the game should update its state here.
@@ -85,6 +110,16 @@ public class GameMap {
         this.player.tick(frameTime);
         doPhysicsStep(frameTime);
 
+        // If we have an exit and it’s not unlocked yet, check if all enemies are dead
+        if (exit != null && !exit.isUnlocked() && allEnemiesDead()) {
+            exit.unlockExit();
+        }
+    }
+
+    private boolean allEnemiesDead() {
+        // If you remove enemies from `enemies` when they die, this is as simple as checking size=0
+        // Or check an isAlive flag in each enemy if you keep them around.
+        return enemies.isEmpty();
     }
 
 
@@ -144,10 +179,10 @@ public class GameMap {
             }
             int x = Integer.parseInt(coords[0]);
             int y = Integer.parseInt(coords[1]);
-            
+
             // 6. Parse the object type
             int type = Integer.parseInt(val);
-    
+
             // 7. Create objects in the Box2D world
             switch (type) {
                 case 0:
@@ -183,14 +218,14 @@ public class GameMap {
                     break;
             }
         }
-    
+
         // 8. If no exit was found, pick a random destructible wall to hide an exit
         //    (only if you want to fulfill the rule that a map might not specify exit).
         ensureExitIfMissing();
     }
 
         private void spawnIndestructibleWall(int x, int y) {
-        TextureRegion wallTexture = new TextureRegion(new Texture("assets/texture/ind.png"));
+        TextureRegion wallTexture = new TextureRegion(Textures.INDEST_WALL);
         float wallWidth = 1f;
         float wallHeight = 1f;
         IndestructibleWall wall = new IndestructibleWall(
@@ -202,7 +237,7 @@ public class GameMap {
     }
 
     private void spawnDestructibleWall(int x, int y) {
-        TextureRegion wallTexture = new TextureRegion(new Texture("assets/texture/destructablewall.png"));
+        TextureRegion wallTexture = new TextureRegion(Textures.DEST_WALL);
         float wallWidth = 1f;
         float wallHeight = 1f;
         DestructibleWall wall = new DestructibleWall(
@@ -222,20 +257,37 @@ public class GameMap {
     }
 
     private void spawnExit(int x, int y) {
-        // Typically you hide the exit behind a destructible wall. 
-        // One approach is to spawn a destructible wall at (x,y) AND keep track 
-        // that the exit is "under" that wall. You might store it in a dedicated list or object.
+        // 1) Make a destructible wall covering (x, y)
+        TextureRegion destructibleRegion = new TextureRegion(
+            new Texture("assets/texture/destructablewall.png")
+        );
+        DestructibleWall coverWall = new DestructibleWall(
+            this.world,
+            x, y,
+            1f, 1f,
+            destructibleRegion
+        );
+        this.walls.add(coverWall);
+
+        // 2) Create an Exit object referencing that wall
+        //    The Exit constructor can take the same coordinates plus a reference to the wall
+        //    (We pass 'null' for animation or a custom exit texture if you prefer.)
+        this.exit = new Exit(x, y, Textures.EXIT, coverWall);
     }
 
     private void spawnEnemy(int x, int y) {
-        // Create an Enemy body in the Box2D world at (x, y)
-        // Add it to a list of enemies
+        // This is a placeholder. You might do real logic like new Enemy(world, x, y, someTexture)
+        // For now, let's just store a dummy instance in enemies list.
+        TextureRegion concurrencyRegion = new TextureRegion(new Texture("assets/texture/powerup.png"));
+        Enemy e = new Enemy(world, x, y, 3, concurrencyRegion);
+        // e.setX(x); e.setY(y); or actual Box2D logic if you prefer
+        enemies.add(e);
     }
 
     private void spawnConcurrentPowerUp(int x, int y) {
-        // Usually you also spawn a destructible wall on top. 
-        // Keep track of the power-up so that once the wall is destroyed, 
-        // the power-up can be revealed.
+        TextureRegion concurrencyRegion = new TextureRegion(new Texture("assets/texture/powerup.png"));
+        PowerUp p = new PowerUp(world, x, y, 5, concurrencyRegion);
+        powerUps.add(p);
     }
 
     private void spawnBlastRadiusPowerUp(int x, int y) {
