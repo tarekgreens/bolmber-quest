@@ -50,25 +50,25 @@ public class Hud {
         Exit exit = map.getExit();
 
         // Draw the HUD elements
-        font.draw(spriteBatch, "Press Esc to Pause!", 10, Gdx.graphics.getHeight() - 10);
+        font.draw(spriteBatch, "Press Esc to Pause!", 10, Gdx.graphics.getHeight());
 
         // 1) Bomb radius
         int radius = (player != null) ? player.getBombRadius() : 0;
-        font.draw(spriteBatch, "Bomb Radius: " + radius, 10, 460);
+        font.draw(spriteBatch, "Bomb Radius: " + radius, 10, Gdx.graphics.getHeight() -20);
 
         // 2) Bomb capacity (concurrent bombs)
         int capacity = (player != null) ? player.getBombCapacity() : 0;
-        font.draw(spriteBatch, "Bomb Capacity: " + capacity, 10, 440);
+        font.draw(spriteBatch, "Bomb Capacity: " + capacity, 300, Gdx.graphics.getHeight() - 20);
 
         // 3) Countdown/time left
-        font.draw(spriteBatch, "Time Left: " + (int) timeRemaining, 10, 420);
+        font.draw(spriteBatch, "Time Left: " + (int) timeRemaining, 700, Gdx.graphics.getHeight() - 20);
 
         // 4) Remaining enemies
         int enemyCount = map.getEnemies().size();
-        font.draw(spriteBatch, "Enemies Left: " + enemyCount, 10, 400);
+        font.draw(spriteBatch, "Enemies Left: " + enemyCount, 1000, Gdx.graphics.getHeight()- 20);
 
         if (exit != null && exit.isUnlocked()) {
-            font.draw(spriteBatch, "EXIT UNLOCKED!", 10, 380);
+            font.draw(spriteBatch, "EXIT UNLOCKED!", 1000, Gdx.graphics.getHeight());
         }
         // Finish drawing
         spriteBatch.end();

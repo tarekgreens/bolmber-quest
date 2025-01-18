@@ -44,7 +44,7 @@ public class GameScreen implements Screen {
     private final Hud hud;
     private final OrthographicCamera mapCamera;
     // For countdown
-    private float levelTime = 300f; // 5 minutes
+    private float levelTime = 30f; // 5 minutes
 
 
     /**
