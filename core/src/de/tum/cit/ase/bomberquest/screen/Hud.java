@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 import de.tum.cit.ase.bomberquest.map.Exit;
-import de.tum.cit.ase.bomberquest.map.GameMap;
 import de.tum.cit.ase.bomberquest.map.Player;
 
 /**
@@ -14,81 +13,25 @@ import de.tum.cit.ase.bomberquest.map.Player;
  * It uses a separate camera so that it is always fixed on the screen.
  */
 public class Hud {
-    
-    /** The SpriteBatch used to draw the HUD. This is the same as the one used in the GameScreen. */
-    private final SpriteBatch spriteBatch;
-    /** The font used to draw text on the screen. */
-    private final BitmapFont font;
-    /** The camera used to render the HUD. */
-    private final OrthographicCamera camera;
+    private OrthographicCamera hudCamera;
+    private SpriteBatch batch;
+    private BitmapFont font;
 
-    private final GameMap map;
-
-    // The time left or elapsed
-    private float timeRemaining = 0f;
-    
-    public Hud(SpriteBatch spriteBatch, BitmapFont font, GameMap map) {
-        this.spriteBatch = spriteBatch;
+    public Hud(SpriteBatch batch, BitmapFont font) {
+        this.batch = batch;
         this.font = font;
-        this.camera = new OrthographicCamera();
-        this.map = map;
-        this.camera.setToOrtho(false);
+        hudCamera = new OrthographicCamera();
     }
     
-    /**
-     * Renders the HUD on the screen.
-     * This uses a different OrthographicCamera so that the HUD is always fixed on the screen.
-     */
-    public void render() {
-        // Render from the camera's perspective
-        spriteBatch.setProjectionMatrix(camera.combined);
-        // Start drawing
-        spriteBatch.begin();
-
-        // For convenience
-        Player player = map.getPlayer();
-        Exit exit = map.getExit();
-
-        // Draw the HUD elements
-        font.draw(spriteBatch, "Press Esc to Pause!", 10, Gdx.graphics.getHeight());
-
-        // 1) Bomb radius
-        int radius = (player != null) ? player.getBombRadius() : 0;
-        font.draw(spriteBatch, "Bomb Radius: " + radius, 10, Gdx.graphics.getHeight() -20);
-
-        // 2) Bomb capacity (concurrent bombs)
-        int capacity = (player != null) ? player.getBombCapacity() : 0;
-        font.draw(spriteBatch, "Bomb Capacity: " + capacity, 300, Gdx.graphics.getHeight() - 20);
-
-        // 3) Countdown/time left
-        font.draw(spriteBatch, "Time Left: " + (int) timeRemaining, 700, Gdx.graphics.getHeight() - 20);
-
-        // 4) Remaining enemies
-        int enemyCount = map.getEnemies().size();
-        font.draw(spriteBatch, "Enemies Left: " + enemyCount, 1000, Gdx.graphics.getHeight()- 20);
-
-        if (exit != null && exit.isUnlocked()) {
-            font.draw(spriteBatch, "EXIT UNLOCKED!", 1000, Gdx.graphics.getHeight());
-        }
-        // Finish drawing
-        spriteBatch.end();
-    }
-    
-    /**
-     * Resizes the HUD when the screen size changes.
-     * This is called when the window is resized.
-     * @param width The new width of the screen.
-     * @param height The new height of the screen.
-     */
-    public void resize(int width, int height) {
-        camera.setToOrtho(false, width, height);
+    public void render(Player player) {
+        batch.setProjectionMatrix(hudCamera.combined);
+        batch.begin();
+        font.draw(batch, "Bomb Radius: " + player.getBombRadius(), 10, 460);
+        font.draw(batch, "Bomb Capacity: " + player.getBombCapacity(), 10, 440);
+        batch.end();
     }
 
-     /**
-     * Let the GameScreen pass the updated time each frame
-     */
-    public void setTimeRemaining(float time) {
-        this.timeRemaining = time;
+    public void resize(int width,int height) {
+        hudCamera.setToOrtho(false,width,height);
     }
-    
 }

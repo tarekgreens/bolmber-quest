@@ -5,226 +5,216 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
-import de.tum.cit.ase.bomberquest.map.Bomb;
-import de.tum.cit.ase.bomberquest.map.Enemy;
-import de.tum.cit.ase.bomberquest.map.Flowers;
-import de.tum.cit.ase.bomberquest.map.Player;
-import de.tum.cit.ase.bomberquest.map.PowerUp;
-import de.tum.cit.ase.bomberquest.map.WallPath;
-import de.tum.cit.ase.bomberquest.texture.Drawable;
-import de.tum.cit.ase.bomberquest.map.GameMap;
+import de.tum.cit.ase.bomberquest.map.*;
+import de.tum.cit.ase.bomberquest.texture.Textures;
 
-/**
- * The GameScreen class is responsible for rendering the gameplay screen.
- * It handles the game logic and rendering of the game elements.
- */
 public class GameScreen implements Screen {
-    
-    /**
-     * The size of a grid cell in pixels.
-     * This allows us to think of coordinates in terms of square grid tiles
-     * (e.g. x=1, y=1 is the bottom left corner of the map)
-     * rather than absolute pixel coordinates.
-     */
-    public static final int TILE_SIZE_PX =16;
-    
-    /**
-     * The scale of the game.
-     * This is used to make everything in the game look bigger or smaller.
-     */
-    public static final int SCALE = 2;
 
     private final BomberQuestGame game;
-    private final SpriteBatch spriteBatch;
-    private final GameMap map;
-    private final Hud hud;
-    private final OrthographicCamera mapCamera;
-    // For countdown
-    private float levelTime = 150f; // 5 minutes
 
+    // We'll use a 320×240 "world size" to start with. If the window is bigger,
+    // the user just sees more of the map.
+    private static final float WORLD_WIDTH = 320;
+    private static final float WORLD_HEIGHT = 240;
 
-    /**
-     * Constructor for GameScreen. Sets up the camera and font.
-     *
-     * @param game The main game class, used to access global resources and methods.
-     */
-    public GameScreen(BomberQuestGame game) {
+    private OrthographicCamera camera;
+    private ExtendViewport viewport;
+    private SpriteBatch batch;
+
+    private TileMap tileMap;
+    private GameMapLogic logic; 
+    private Player player;
+
+    private float tileSizePx = 16f; // each tile is 16×16
+
+    public GameScreen(BomberQuestGame game, String mapFile) {
         this.game = game;
-        this.spriteBatch = game.getSpriteBatch();
-        this.map = game.getMap();
-        // Create and configure the camera for the game view
-        this.mapCamera = new OrthographicCamera();
-        this.mapCamera.setToOrtho(false);
-        // Create the HUD and pass references it needs
-        this.hud = new Hud(game.getSpriteBatch(), game.getSkin().getFont("font"), this.map);
+
+        camera = new OrthographicCamera();
+        viewport = new ExtendViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
+        batch = game.getSpriteBatch();
+
+        // 1) Load the tileMap from map.properties
+        tileMap = new TileMap(40,24); // if you know it's 40×24
+        tileMap.loadFromProperties(mapFile);
+
+        // 2) Create a Player at the tileMap's entrance
+        TextureRegion playerSprite = Textures.ENEMY; 
+        // Suppose you have Textures.CHARACTER or something
+        player = new Player(tileMap, tileMap.getEntranceX(), tileMap.getEntranceY(), playerSprite, null);
+
+        // 3) Create the logic that holds bombs, enemies, powerups
+        logic = new GameMapLogic(tileMap, player);
+        // Now that we have logic, fix the player's logic reference
+        // (We used a 'null' above, let's fix that)
+        player = new Player(tileMap, tileMap.getEntranceX(), tileMap.getEntranceY(), playerSprite, logic);
+        logic.getPlayer().bombExploded(); // ignore this line if desired, just re-init
+
+        // Actually re-create the player with the correct reference
+        logic = new GameMapLogic(tileMap, player);
+
+        // 4) Spawn enemies from tileMap enemySpawns
+        for (TileMap.EnemySpawn es : tileMap.getEnemySpawns()) {
+            TextureRegion eSprite = Textures.ENEMY; 
+            Enemy e = new Enemy(tileMap, es.x, es.y, eSprite, logic);
+            logic.addEnemy(e);
+        }
+
+        // 5) Spawn powerUps
+        for (TileMap.PowerUpSpawn pus : tileMap.getPowerUpSpawns()) {
+            TextureRegion pSprite = (pus.type==5) ? Textures.POWER_UP_GREEN : Textures.POWER_UP_RED;
+            PowerUp p = new PowerUp(pus.x, pus.y, pus.type, pSprite);
+            logic.addPowerUp(p);
+        }
     }
-    
-    /**
-     * The render method is called every frame to render the game.
-     * @param deltaTime The time in seconds since the last render.
-     */
+
     @Override
-    public void render(float deltaTime) {
-        // Check for escape key press to go back to the menu
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+    public void render(float delta) {
+        if (logic.isGameOver()) {
+            // if game is over, show message or go menu
+            System.out.println("GAME OVER => " + logic.getGameOverReason());
             game.goToMenu();
+            return;
         }
-        
-        // Clear the previous frame from the screen, or else the picture smears
-        ScreenUtils.clear(Color.WHITE);
 
-         // Decrement countdown
-         levelTime -= deltaTime;
-         if (levelTime < 0f) {
-             levelTime = 0f;
-         }
-        
-        // Cap frame time to 250ms to prevent spiral of death
-        float frameTime = Math.min(deltaTime, 0.250f);
-        
-        // Update the map state
-        map.tick(frameTime);
-        
-        // Update the camera
-        updateCamera();
+        ScreenUtils.clear(Color.BLACK);
 
-        // Render the map
-        game.getSpriteBatch().setProjectionMatrix(mapCamera.combined);
-        game.getSpriteBatch().begin();
-        
-        // Render the map on the screen
-        renderMap();
+        // 1) Update
+        player.update();
+        logic.update(delta);
 
-        game.getSpriteBatch().end();
+        // 2) Update camera
+        clampCamera80Percent();
 
-        // Finally, render the HUD on top
-        hud.setTimeRemaining(levelTime); // pass updated time to the HUD
-        
-        // Render the HUD on the screen
-        hud.render();
+        // 3) Render
+        camera.update();
+        batch.setProjectionMatrix(camera.combined);
+        batch.begin();
 
+        // draw the tile-based map
+        for (int y=0; y<tileMap.getHeight(); y++) {
+            for (int x=0; x<tileMap.getWidth(); x++) {
+                int t = tileMap.getTile(x,y);
+                TextureRegion region = getTileTexture(t);
+                float px = x*tileSizePx;
+                float py = y*tileSizePx;
+                batch.draw(region, px, py);
+            }
+        }
 
+        // draw powerUps
+        for (PowerUp p : logic.getPowerUps()) {
+            p.render(batch, tileSizePx);
+        }
+
+        // draw bombs
+        for (Bomb b : logic.getBombs()) {
+            if (!b.isExploded()) {
+                float px = b.getX()*tileSizePx;
+                float py = b.getY()*tileSizePx;
+                // we can draw a bomb sprite
+                batch.draw(Textures.BOMB, px, py);
+            }
+        }
+
+        // draw enemies
+        for (Enemy e : logic.getEnemies()) {
+            e.render(batch, tileSizePx);
+        }
+
+        // draw player
+        player.render(batch, tileSizePx);
+
+        batch.end();
     }
-
 
     /**
-     * Updates the camera to match the current state of the game.
-     * Currently, this just centers the camera at the origin.
+     * Clamps the camera so the player is within the middle 80% of the screen,
+     * and we don't show beyond the map edges.
      */
-    private void updateCamera() {
-        mapCamera.setToOrtho(false);
-        mapCamera.position.x = 19.5f * TILE_SIZE_PX * SCALE;
-        mapCamera.position.y = 11.5f * TILE_SIZE_PX * SCALE;
-        mapCamera.update();
-    }
-    
-    private void renderMap() {
-        // This configures the spriteBatch to use the camera's perspective when rendering
-        spriteBatch.setProjectionMatrix(mapCamera.combined);
+    private void clampCamera80Percent() {
+        float camW = viewport.getWorldWidth();
+        float camH = viewport.getWorldHeight();
 
+        float marginX = camW*0.1f;
+        float marginY = camH*0.1f;
 
-    if (map.getChest() != null) {
-        draw(spriteBatch, map.getChest());
-    }
+        // player's pixel coords
+        float playerPxX = player.getTileX()*tileSizePx;
+        float playerPxY = player.getTileY()*tileSizePx;
 
-    // Player should never be null if you instantiate it, but just in case:
-    if (map.getPlayer() != null) {
-        draw(spriteBatch, map.getPlayer());
-    }
+        float leftLimit = camera.position.x - camW/2f + marginX;
+        float rightLimit= camera.position.x + camW/2f - marginX;
+        float downLimit = camera.position.y - camH/2f + marginY;
+        float upLimit   = camera.position.y + camH/2f - marginY;
 
-    for (PowerUp p : map.getPowerUps()) {
-        draw(spriteBatch, p);
-    }
-
-    // For walls, skip null entries
-    for (WallPath wall : map.getWalls()) {
-        if (wall != null) {
-            draw(spriteBatch, wall);
-        }
-    }
-
-    for (Bomb b : map.getBombs()) {
-        b.render(spriteBatch);
-    }
-
-    if (map.getEntrance() != null) {
-        draw(spriteBatch, map.getEntrance());
-    }
-    for (Enemy e : map.getEnemies()) {
-        draw(spriteBatch, e);
-    }
-
-    draw(spriteBatch, map.getExit());
-    }
-    /**
-     * Draws this object on the screen.
-     * The texture will be scaled by the game scale and the tile size.
-     * This should only be called between spriteBatch.begin() and spriteBatch.end(), e.g. in the renderMap() method.
-     * @param spriteBatch The SpriteBatch to draw with.
-     */
-    private static void draw(SpriteBatch spriteBatch, Drawable drawable) {
-        if (drawable instanceof WallPath wall && wall.isDestroyed()) {
-            return; // Skip drawing destroyed walls
-        }
-        TextureRegion texture = drawable.getCurrentAppearance();
-
-        if (texture == null) {
-            System.out.println("DEBUG: getCurrentAppearance() is null for " + drawable.getClass().getSimpleName()
-                + " => x=" + drawable.getX() + " y=" + drawable.getY());
-            return;  // skip drawing, avoid NPE
+        // adjust horizontally
+        if (playerPxX < leftLimit) {
+            camera.position.x -= (leftLimit - playerPxX);
+        } else if (playerPxX > rightLimit) {
+            camera.position.x += (playerPxX - rightLimit);
         }
 
-        float x, y;
-        if (drawable instanceof Player) {
-            Player player = (Player) drawable;
-            x = player.getX() * TILE_SIZE_PX * SCALE - 0.3f * TILE_SIZE_PX * SCALE; // Adjust for radius
-            y = player.getY() * TILE_SIZE_PX * SCALE - 0.3f * TILE_SIZE_PX * SCALE;
+        // adjust vertically
+        if (playerPxY < downLimit) {
+            camera.position.y -= (downLimit - playerPxY);
+        } else if (playerPxY > upLimit) {
+            camera.position.y += (playerPxY - upLimit);
+        }
+
+        // clamp so we don't go outside map
+        float mapW = tileMap.getWidth()*tileSizePx;
+        float mapH = tileMap.getHeight()*tileSizePx;
+
+        float halfW = camW/2f;
+        float halfH = camH/2f;
+
+        // clamp X
+        if (camW < mapW) {
+            if (camera.position.x < halfW) camera.position.x=halfW;
+            if (camera.position.x > mapW-halfW) camera.position.x= mapW-halfW;
         } else {
-            x = drawable.getX() * TILE_SIZE_PX * SCALE;
-            y = drawable.getY() * TILE_SIZE_PX * SCALE;
+            // if map is narrower than cam => center
+            camera.position.x = mapW/2f;
         }
 
-        float width = texture.getRegionWidth() * SCALE;
-        float height = texture.getRegionHeight() * SCALE;
-        spriteBatch.draw(texture, x, y, width, height);
+        // clamp Y
+        if (camH < mapH) {
+            if (camera.position.y < halfH) camera.position.y=halfH;
+            if (camera.position.y > mapH-halfH) camera.position.y= mapH-halfH;
+        } else {
+            camera.position.y = mapH/2f;
+        }
     }
-    
-    /**
-     * Called when the window is resized.
-     * This is where the camera is updated to match the new window size.
-     * @param width The new window width.
-     * @param height The new window height.
-     */
+
+    private TextureRegion getTileTexture(int tileType){
+        // 0 => floor, 1 => inde, 2 => destructive
+        switch(tileType) {
+            case TileMap.WALL_INDESTRUCTIBLE: return Textures.INDEST_WALL;
+            case TileMap.WALL_DESTRUCTIBLE: return Textures.DEST_WALL;
+            default: 
+                // treat as floor
+                return Textures.FLOWERS; 
+        }
+    }
+
     @Override
     public void resize(int width, int height) {
-        mapCamera.setToOrtho(false);
-        hud.resize(width, height);
-    }
-
-    // Unused methods from the Screen interface
-    @Override
-    public void pause() {
+        viewport.update(width,height,false);
     }
 
     @Override
-    public void resume() {
-    }
-
+    public void show() {}
     @Override
-    public void show() {
-
-    }
-
+    public void hide() {}
     @Override
-    public void hide() {
-    }
-
+    public void pause() {}
     @Override
-    public void dispose() {
-    }
-
+    public void resume() {}
+    @Override
+    public void dispose() {}
 }

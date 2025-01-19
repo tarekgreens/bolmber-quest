@@ -4,165 +4,85 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.physics.box2d.*;
-import de.tum.cit.ase.bomberquest.texture.Animations;
-import de.tum.cit.ase.bomberquest.texture.Drawable;
 
 /**
- * Represents the player character in the game.
- * The player has a hitbox, so it can collide with other objects in the game.
+ * The Player moves tile-by-tile and can place bombs.
  */
-public class Player extends Object implements Drawable {
+public class Player {
 
-    /** Total time elapsed since the game started. We use this for calculating the player movement and animating it. */
-    private float elapsedTime;
+    private int tileX, tileY;
+    private final TileMap tileMap;
+    private final GameMapLogic logic; // We'll store or reference an external logic that holds bombs etc.
 
-    /** The Box2D hitbox of the player, used for position and collision detection. */
-    private final Body hitbox;
+    private TextureRegion sprite;
+    private int bombCapacity = 1;
+    private int bombsActive = 0;
+    private int bombRadius = 1;
 
-    // New fields for bombs
-    private int bombCapacity = 1;    // how many bombs can be active at once
-    private int bombsCurrentlyPlaced = 0;
-    private int bombRadius = 1;       // default radius
-
-    // A reference back to the GameMap so we can place bombs there.
-    private final GameMap map;
-
-    public Player(World world, float x, float y, GameMap map) {
-        super(x, y, null);
-        this.map = map;
-        this.hitbox = createHitbox(world, x, y);
+    public Player(TileMap tileMap, int startX, int startY, TextureRegion sprite, GameMapLogic logic) {
+        this.tileMap = tileMap;
+        this.tileX = startX;
+        this.tileY = startY;
+        this.sprite = sprite;
+        this.logic = logic;
     }
 
-    /**
-     * Creates a Box2D body for the player.
-     * This is what the physics engine uses to move the player around and detect collisions with other bodies.
-     *
-     * @param world  The Box2D world to add the body to.
-     * @param startX The initial X position.
-     * @param startY The initial Y position.
-     * @return The created body.
-     */
-    private Body createHitbox(World world, float startX, float startY) {
-        BodyDef bodyDef = new BodyDef();
-        bodyDef.type = BodyDef.BodyType.DynamicBody;
-        bodyDef.position.set(startX, startY);
-        Body body = world.createBody(bodyDef);
+    public void update() {
+        // Simple input-based movement
+        int dx=0, dy=0;
+        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) { dy=1; }
+        else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) { dy=-1; }
+        else if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) { dx=-1; }
+        else if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) { dx=1; }
 
-        CircleShape circle = new CircleShape();
-        circle.setRadius(0.3f);
-
-        FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = circle;
-        fixtureDef.density = 1.0f;
-        fixtureDef.friction = 0.5f;
-        fixtureDef.restitution = 0.0f;
-        fixtureDef.isSensor = false;
-
-        body.createFixture(fixtureDef);
-        body.setUserData(this);
-        circle.dispose();
-        return body;
-    }
-
-    /**
-     * Handles movement each frame, plus checks if SPACE is pressed to place a bomb.
-     */
-    public void tick(float frameTime) {
-        this.elapsedTime += frameTime;
-
-        // Movement logic
-        float xVelocity = 0;
-        float yVelocity = 0;
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-            yVelocity = 2;
-        } else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-            yVelocity = -2;
+        if (dx!=0 || dy!=0) {
+            tryMove(dx, dy);
         }
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            xVelocity = -2;
-        } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            xVelocity = 2;
-        }
-        this.hitbox.setLinearVelocity(xVelocity, yVelocity);
 
-        // If pressing SPACE, try to place bomb
+        // Place bomb if SPACE pressed
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            attemptToPlaceBomb();
-        }
-
-       System.out.println("Player velocity: " + this.hitbox.getLinearVelocity());
-       System.out.println("Player position: " + this.hitbox.getPosition());
-    }
-
-    private void attemptToPlaceBomb() {
-        // Only place if we haven't exceeded capacity
-        if (bombsCurrentlyPlaced < bombCapacity) {
-            // Round the player's float position to the nearest tile
-            int bombX = Math.round(getHitbox().getPosition().x);
-            int bombY = Math.round(getHitbox().getPosition().y);
-
-            // Create and add Bomb to the GameMap
-            Bomb newBomb = new Bomb(
-                bombX,
-                bombY,
-                bombRadius,
-                System.currentTimeMillis()
-            );
-
-            // Actually add the bomb to the map so it can be updated & rendered
-            map.addBomb(newBomb);
-
-            bombsCurrentlyPlaced++;
+            attemptPlaceBomb();
         }
     }
 
-    /**
-     * Called by the Bomb when it finishes exploding (so the Player can place another).
-     */
-    public void bombHasExploded() {
-        bombsCurrentlyPlaced = Math.max(0, bombsCurrentlyPlaced - 1);
+    private void tryMove(int dx, int dy) {
+        int nx = tileX + dx;
+        int ny = tileY + dy;
+        // Check if blocked
+        if (!tileMap.isBlocked(nx, ny)) {
+            tileX = nx;
+            tileY = ny;
+        }
+    }
+
+    private void attemptPlaceBomb() {
+        if (bombsActive < bombCapacity) {
+            // place a bomb
+            logic.addBomb(new Bomb(tileX, tileY, bombRadius, logic));
+            bombsActive++;
+        }
+    }
+
+    public void bombExploded() {
+        bombsActive = Math.max(0, bombsActive-1);
     }
 
     public void increaseBombRadius() {
-        bombRadius = Math.min(bombRadius + 1, 8);
+        bombRadius = Math.min(bombRadius+1, 8);
     }
 
     public void increaseBombCapacity() {
-        bombCapacity = Math.min(bombCapacity + 1, 8);
+        bombCapacity = Math.min(bombCapacity+1, 8);
     }
 
-    public Body getHitbox() {
-        return hitbox;
+    public void render(SpriteBatch batch, float tileSizePx) {
+        float px = tileX * tileSizePx;
+        float py = tileY * tileSizePx;
+        batch.draw(sprite, px, py);
     }
 
-    @Override
-    public TextureRegion getCurrentAppearance() {
-        // Get the frame of the walk down animation that corresponds to the current time.
-        return Animations.CHARACTER_WALK_DOWN.getKeyFrame(this.elapsedTime, true);
-    }
-
-    @Override
-    public float getX() {
-        return hitbox.getPosition().x;
-    }
-
-    @Override
-    public float getY() {
-        return hitbox.getPosition().y;
-    }
-
-    public int getBombRadius() {
-        return bombRadius;
-    }
-
-    public int getBombCapacity() {
-        return bombCapacity;
-    }
-
-
-    public void render(SpriteBatch batch) {
-        // Draw the player's current sprite at (x, y)
-        batch.draw(getCurrentAppearance(), getX(), getY(), 1f, 1f);
-    }
+    public int getTileX() { return tileX; }
+    public int getTileY() { return tileY; }
+    public int getBombRadius() { return bombRadius; }
+    public int getBombCapacity() { return bombCapacity; }
 }
