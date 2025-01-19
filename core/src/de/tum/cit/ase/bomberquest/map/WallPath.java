@@ -56,6 +56,7 @@ public abstract class WallPath extends Object implements Drawable{
         fixtureDef.density = 1.0f;
         fixtureDef.friction = 0.5f;
         fixtureDef.restitution = 0.0f;
+        fixtureDef.isSensor = false;
 
         this.body.createFixture(fixtureDef);
         this.body.setUserData(this);

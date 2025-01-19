@@ -54,6 +54,7 @@ public class GameMap {
     public GameMap(BomberQuestGame game) {
         this.game = game;
         this.world = new World(Vector2.Zero, true);
+        this.world.setContactListener(new PlayerContactListener(this));
 
         this.player = new Player(this.world, 0, 0, this);
         this.enemies = new ArrayList<>();
@@ -100,7 +101,12 @@ public class GameMap {
         }
         bombs.removeAll(toRemove);
 
-        // 4) If there's an exit, check if all enemies dead => unlock
+        // 4) Update enemies
+        for (Enemy e : enemies) {
+            e.update(frameTime, this);
+        }
+
+        // 5) If there's an exit, check if all enemies dead => unlock
         if (exit != null && !exit.isUnlocked() && allEnemiesDead()) {
             exit.unlockExit();
         }
@@ -330,5 +336,13 @@ public class GameMap {
     private void ensureExitIfMissing() {
         // Check if you spawned an exit at all.
         // If not, pick a random destructible wall from `walls` to place an exit under it.
+    }
+
+    public void gameOver() {
+        System.out.println("Game Over triggered. You died.");
+        // You can do any logic here: e.g. remove the player’s body, or go to a GameOverScreen.
+        // Example:
+        game.goToMenu(); 
+        // or game.goToGameOverScreen();
     }
 }

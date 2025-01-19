@@ -1,93 +1,5 @@
 
 
---- File: build.gradle ---
-
-buildscript {
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        gradlePluginPortal()
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-        google()
-    }
-    dependencies {
-
-    }
-}
-
-allprojects {
-    apply plugin: "eclipse"
-
-    version = '1.0'
-    ext {
-        appName = "Bomber Quest"
-        gdxVersion = '1.13.0'
-        roboVMVersion = '2.3.20'
-        box2DLightsVersion = '1.5'
-        ashleyVersion = '1.7.4'
-        aiVersion = '1.8.2'
-        gdxControllersVersion = '2.2.1'
-        gdxNativefilechooserVersion = '2.3.0'
-    }
-
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        google()
-        gradlePluginPortal()
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-        maven { url "https://oss.sonatype.org/content/repositories/releases/" }
-        maven { url "https://jitpack.io" }
-    }
-
-    tasks.withType(JavaCompile).configureEach {
-        javaCompiler = javaToolchains.compilerFor {
-            languageVersion = JavaLanguageVersion.of(17)
-        }
-    }
-}
-
-project(":desktop") {
-    apply plugin: "java-library"
-
-    dependencies {
-        implementation project(":core")
-        api "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
-        api "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
-        implementation "games.spooky.gdx:gdx-nativefilechooser-desktop-lwjgl:$gdxNativefilechooserVersion"
-        api "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
-    }
-}
-
-project(":core") {
-    apply plugin: "java-library"
-
-    dependencies {
-        api "com.badlogicgames.gdx:gdx:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
-        implementation "games.spooky.gdx:gdx-nativefilechooser:$gdxNativefilechooserVersion"
-        api "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
-    }
-}
-
-
---- File: settings.gradle ---
-
-include 'desktop', 'core'
-
---- File: core/build.gradle ---
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-}
-[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
-
-sourceSets.main.java.srcDirs = [ "src/" ]
-
-eclipse.project.name = appName + "-core"
-
-
 --- File: core/src/de/tum/cit/ase/bomberquest/BomberQuestGame.java ---
 
 package de.tum.cit.ase.bomberquest;
@@ -254,6 +166,140 @@ public enum MusicTrack {
 }
 
 
+--- File: core/src/de/tum/cit/ase/bomberquest/map/Bomb.java ---
+
+package de.tum.cit.ase.bomberquest.map;
+
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import de.tum.cit.ase.bomberquest.screen.GameScreen;
+import de.tum.cit.ase.bomberquest.texture.Textures;
+
+public class Bomb {
+
+    private static final float FUSE_TIME_SECONDS = 3.0f;
+
+    private final int tileX;
+    private final int tileY;
+    private final int blastRadius;
+    private final long placeTimeMillis;
+    private boolean exploded;
+
+    // We store a bomb texture region so we can draw it
+    private final TextureRegion texture;
+
+    public Bomb(int tileX, int tileY, int radius, long placeTimeMillis) {
+        this.tileX = tileX;
+        this.tileY = tileY;
+        this.blastRadius = radius;
+        this.placeTimeMillis = placeTimeMillis;
+        this.exploded = false;
+
+        // Example: if you have a BOMB texture region in your Textures class
+        this.texture = Textures.BOMB;  // e.g. loaded from a spritesheet
+    }
+
+    public void update(float deltaTime, GameMap map) {
+        if (!exploded) {
+            float elapsed = (System.currentTimeMillis() - placeTimeMillis) / 1000f;
+            if (elapsed >= FUSE_TIME_SECONDS) {
+                explode(map);
+            }
+        }
+    }
+
+    private void explode(GameMap map) {
+        exploded = true;
+
+        // 1) Damage outward in cardinal directions
+        causeBlast(map,  1,  0); // right
+        causeBlast(map, -1,  0); // left
+        causeBlast(map,  0,  1); // up
+        causeBlast(map,  0, -1); // down
+
+        // 2) Damage the tile the bomb is on
+        damageTile(map, tileX, tileY);
+
+        // 3) Inform the player so bomb capacity can free up
+        if (map.getPlayer() != null) {
+            map.getPlayer().bombHasExploded();
+        }
+
+        // Optionally: sound effect, explosion animation, etc.
+    }
+
+    private void causeBlast(GameMap map, int dx, int dy) {
+        int currentX = tileX;
+        int currentY = tileY;
+        for (int i = 1; i <= blastRadius; i++) {
+            currentX += dx;
+            currentY += dy;
+            if (currentX < 0 || currentX >= 40 || currentY < 0 || currentY >= 24) {
+                break;
+            }
+            boolean blocked = damageTile(map, currentX, currentY);
+            if (blocked) {
+                // Indestructible or we destroyed a destructible (end blast)
+                break;
+            }
+        }
+    }
+
+    private boolean damageTile(GameMap map, int x, int y) {
+        // Check walls
+        for (WallPath wall : map.getWalls()) {
+            if (!wall.isDestroyed()) {
+                int wx = (int) wall.getX();
+                int wy = (int) wall.getY();
+                if (wx == x && wy == y) {
+                    if (wall.isDestructible()) {
+                        wall.destroy();  // remove from Box2D, mark destroyed
+                        return false;   // continue blast
+                    } else {
+                        return true;    // block blast
+                    }
+                }
+            }
+        }
+        // Check enemies
+        for (Enemy e : map.getEnemies()) {
+            int ex = (int) e.getX();
+            int ey = (int) e.getY();
+            if (ex == x && ey == y) {
+                map.getEnemies().remove(e);
+                break;
+            }
+        }
+        // Check player
+        Player p = map.getPlayer();
+        if (p != null) {
+            int px = (int) p.getX();
+            int py = (int) p.getY();
+            if (px == x && py == y) {
+                System.out.println("Player killed by bomb at (" + x + "," + y + ")!");
+                // e.g. map.gameOver();
+            }
+        }
+        return false; // no block
+    }
+
+    public boolean isExploded() {
+        return exploded;
+    }
+
+    public void render(SpriteBatch batch) {
+        if (!exploded) {
+            float px = tileX * GameScreen.TILE_SIZE_PX * GameScreen.SCALE;
+            float py = tileY * GameScreen.TILE_SIZE_PX * GameScreen.SCALE;
+            batch.draw(texture, px, py,
+                texture.getRegionWidth() * GameScreen.SCALE,
+                texture.getRegionHeight() * GameScreen.SCALE
+            );
+        }
+    }
+}
+
+
 --- File: core/src/de/tum/cit/ase/bomberquest/map/Enemy.java ---
 
 package de.tum.cit.ase.bomberquest.map;
@@ -263,9 +309,12 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.CircleShape;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
 
+import de.tum.cit.ase.bomberquest.texture.Animations;
 import de.tum.cit.ase.bomberquest.texture.Drawable;
 
 /**
@@ -278,6 +327,12 @@ public class Enemy extends Object implements Drawable {
     private final Body body;
     private final TextureRegion textureRegion;
     private static final float ENEMY_SIZE = 1.0f;
+    private float dirChangeTimer = 0f;
+    private final float DIR_CHANGE_INTERVAL = 1.0f;  // how often to pick a new direction
+    private Vector2 currentVelocity = new Vector2();
+
+    private float elapsedTime;
+
 
     public Enemy() {
         super(0, 0, null);
@@ -288,19 +343,25 @@ public class Enemy extends Object implements Drawable {
     public Enemy(World world, float x, float y, int type, TextureRegion textureRegion) {
         super(x, y, null);
         this.textureRegion = textureRegion;
-
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
         bodyDef.position.set(x, y);
-
         body = world.createBody(bodyDef);
+        body.setSleepingAllowed(false);
 
+                CircleShape circle = new CircleShape();
+        circle.setRadius(0.3f);
 
-        PolygonShape shape = new PolygonShape();
-        shape.setAsBox(ENEMY_SIZE / 2, ENEMY_SIZE / 2);
-        body.createFixture(shape, 1.0f);
-        shape.dispose();
-    }
+        FixtureDef fixtureDef = new FixtureDef();
+        fixtureDef.shape = circle;
+        fixtureDef.density = 1.0f;
+        fixtureDef.friction = 0.5f;
+        fixtureDef.restitution = 0.0f;
+
+        body.createFixture(fixtureDef);
+        body.setUserData(this);
+        circle.dispose();
+        }
 
     /**
      * Renders the enemy on the screen.
@@ -314,15 +375,40 @@ public class Enemy extends Object implements Drawable {
     }
 
 
+    public void update(float deltaTime, GameMap map) {
+        this.elapsedTime += deltaTime;
+        // 1) Possibly pick a new random direction
+        dirChangeTimer += deltaTime;
+        if (dirChangeTimer >= DIR_CHANGE_INTERVAL) {
+            dirChangeTimer = 0f;
 
-    /**
-     * Updates the enemy's state.
-     *
-     * @param deltaTime The time elapsed since the last frame.
-     */
+            // random integer from 0..3 => up/down/left/right
+            int dir = com.badlogic.gdx.math.MathUtils.random(3);
+            switch (dir) {
+                case 0: currentVelocity.set(2, 0); break;  // right
+                case 1: currentVelocity.set(-2, 0); break; // left
+                case 2: currentVelocity.set(0, 2); break;  // up
+                case 3: currentVelocity.set(0, -2); break; // down
+            }
+        }
 
-    public void update(float deltaTime) {
+        // 2) Move according to currentVelocity
+        body.setLinearVelocity(currentVelocity.x, currentVelocity.y);
+        System.out.println("Enemy velocity: " + body.getLinearVelocity());
+        System.out.println("Enemy position: " + body.getPosition());
+        body.setAwake(true);
 
+        // 3) Check if enemy touches the player => kill the player
+        Player player = map.getPlayer();
+        if (player != null) {
+            float dist = body.getPosition().dst(player.getHitbox().getPosition());
+            // 0.8 or 0.5 => depends how "close" is a collision.
+            // We can also rely on Box2D collisions, but let's do a simple distance check.
+            if (dist < 0.5f) {
+                System.out.println("Player killed by enemy at " + body.getPosition());
+                // e.g. do some map.gameOver() or kill the player
+            }
+        }
     }
 
     public Body getBody() {
@@ -349,48 +435,6 @@ public class Enemy extends Object implements Drawable {
 
 }
 
-
-
---- File: core/src/de/tum/cit/ase/bomberquest/map/Flowers.java ---
-
-package de.tum.cit.ase.bomberquest.map;
-
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import de.tum.cit.ase.bomberquest.texture.Drawable;
-import de.tum.cit.ase.bomberquest.texture.Textures;
-
-/**
- * Flowers are a static object without any special properties.
- * They do not have a hitbox, so the player does not collide with them.
- * They are purely decorative and serve as a nice floor decoration.
- */
-public class Flowers implements Drawable {
-    
-    private final int x;
-    private final int y;
-    
-    public Flowers(int x, int y) {
-        this.x = x;
-        this.y = y;
-    }
-    
-    @Override
-    public TextureRegion getCurrentAppearance() {
-        return Textures.FLOWERS;
-    }
-    
-    @Override
-    public float getX() {
-        return x;
-    }
-    
-    @Override
-    public float getY() {
-        return y;
-    }
-
-}
 
 
 --- File: core/src/de/tum/cit/ase/bomberquest/map/PowerUp.java ---
@@ -724,81 +768,6 @@ public class IndestructibleWall extends WallPath  {
 
 }
 
---- File: core/src/de/tum/cit/ase/bomberquest/map/Entrance.java ---
-
-package de.tum.cit.ase.bomberquest.map;
-
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-
-import de.tum.cit.ase.bomberquest.texture.Drawable;
-
-/**
- * The Entrance class represents the starting point of the player in the game.
- * It extends the Object class and provides functionality specific to the entrance object.
- *
- * The Entrance serves as the spawn point for the player at the beginning of the game.
- * It is visually represented by a texture and does not require any dynamic animation.
- *
- * @see Object
- */
-public class Entrance extends Object implements Drawable {
-
-    /**
-     * Constructs an Entrance object with the specified position and texture region.
-     *
-     * @param x             The x-coordinate of the entrance.
-     * @param y             The y-coordinate of the entrance.
-     * @param textureRegion The texture region representing the entrance's visual appearance.
-     */
-    public Entrance(float x, float y, TextureRegion textureRegion) {
-        super(x, y, null); // No animation needed for the Entrance.
-        this.textureRegion = textureRegion; // Set the visual representation of the entrance.
-        this.width = 64; // Default width
-        this.height = 64; // Default height
-    }
-
-    /**
-     * Draws the entrance using the specified SpriteBatch and dimensions.
-     *
-     * @param batch The SpriteBatch used for rendering the entrance.
-     * @param delta The time elapsed since the last draw.
-     */
-
-    public void draw(SpriteBatch batch, float delta) {
-        if (textureRegion != null) {
-            batch.draw(textureRegion, x, y, width, height);
-        }
-    }
-
-    /**
-     * Updates the entrance object.
-     * Since the entrance does not have dynamic behavior, this method is empty.
-     *
-     * @param delta The time elapsed since the last update.
-     */
-    @Override
-    public void update(float delta) {
-        // No dynamic updates needed for the entrance.
-    }
-
-    @Override
-    public TextureRegion getCurrentAppearance() {
-        // just return this.textureRegion
-        return textureRegion;
-    }
-
-    @Override
-    public float getX() {
-        return x;  // ‘x’ is inherited from parent
-    }
-
-    @Override
-    public float getY() {
-        return y;
-    }
-}
-
 --- File: core/src/de/tum/cit/ase/bomberquest/map/GameMap.java ---
 
 package de.tum.cit.ase.bomberquest.map;
@@ -836,55 +805,35 @@ public class GameMap {
      * It is set to 1/refreshRate, where refreshRate is the refresh rate of the monitor, e.g., 1/60 for 60 Hz.
      */
     private static final float TIME_STEP = 1f / Gdx.graphics.getDisplayMode().refreshRate;
-    /** The number of velocity iterations for the physics simulation. */
     private static final int VELOCITY_ITERATIONS = 6;
-    /** The number of position iterations for the physics simulation. */
     private static final int POSITION_ITERATIONS = 2;
-    /**
-     * The accumulated time since the last physics step.
-     * We use this to keep the physics simulation at a constant rate even if the frame rate is variable.
-     */
     private float physicsTime = 0;
 
-    /** The game, in case the map needs to access it. */
     private final BomberQuestGame game;
-    /** The Box2D world for physics simulation. */
     private final World world;
-
-    // Game objects
     private final Player player;
+
     private Entrance entrance;
     private Exit exit;
-    private final Chest chest;
-
+    private final Chest chest; // if used
     private final Flowers[][] flowers;
 
     private final List<WallPath> walls;
     private List<Enemy> enemies;
-    private final List<PowerUp> powerUps = new ArrayList<>();
-    private Texture indestructibleWallTexture;
-    private Texture destructibleWallTexture;
+    private final List<PowerUp> powerUps;
+    private final List<Bomb> bombs;
 
     public GameMap(BomberQuestGame game) {
         this.game = game;
         this.world = new World(Vector2.Zero, true);
 
-        this.entrance = null;
-        this.exit = null;
-
-        // Create the player (so we have it ready for when the entrance is parsed).
-        this.player = new Player(this.world, 0, 0);
-
+        this.player = new Player(this.world, 0, 0, this);
         this.enemies = new ArrayList<>();
-
-        // Initialize empty data structures:
         this.walls = new ArrayList<>();
-        this.chest= null;
-        this.entrance = null;
+        this.chest = null;   // or spawn if needed
         this.flowers = new Flowers[1][4];
-
-        indestructibleWallTexture = new Texture("assets/texture/ind.png");
-        destructibleWallTexture = new Texture("assets/texture/destructablewall.png");
+        this.powerUps = new ArrayList<>();
+        this.bombs = new ArrayList<>();
     }
 
     public Entrance getEntrance() {
@@ -904,40 +853,93 @@ public class GameMap {
     }
 
 
-    /**
-     * Updates the game state. This is called once per frame.
-     * Every dynamic object in the game should update its state here.
-     * @param frameTime the time that has passed since the last update
-     */
     public void tick(float frameTime) {
-        this.player.tick(frameTime);
+        // 1) Let player handle input
+        player.tick(frameTime);
+
+        // 2) Update physics (player movement, collisions)
         doPhysicsStep(frameTime);
 
-        // If we have an exit and it’s not unlocked yet, check if all enemies are dead
+        checkPlayerPowerUpPickup();
+
+        // 3) Update bombs
+        List<Bomb> toRemove = new ArrayList<>();
+        for (Bomb bomb : bombs) {
+            bomb.update(frameTime, this);
+            if (bomb.isExploded()) {
+                toRemove.add(bomb);
+            }
+        }
+        bombs.removeAll(toRemove);
+
+        // 4) Update enemies
+        for (Enemy e : enemies) {
+            e.update(frameTime, this);
+        }
+
+        // 5) If there's an exit, check if all enemies dead => unlock
         if (exit != null && !exit.isUnlocked() && allEnemiesDead()) {
             exit.unlockExit();
         }
     }
 
-    private boolean allEnemiesDead() {
-        // If you remove enemies from `enemies` when they die, this is as simple as checking size=0
-        // Or check an isAlive flag in each enemy if you keep them around.
-        return enemies.isEmpty();
+    private void doPhysicsStep(float frameTime) {
+        physicsTime += frameTime;
+        while (physicsTime >= TIME_STEP) {
+            world.step(TIME_STEP, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
+            physicsTime -= TIME_STEP;
+        }
     }
 
-
-    /**
-     * Performs as many physics steps as necessary to catch up to the given frame time.
-     * This will update the Box2D world by the given time step.
-     * @param frameTime Time since last frame in seconds
-     */
-    private void doPhysicsStep(float frameTime) {
-        this.physicsTime += frameTime;
-        while (this.physicsTime >= TIME_STEP) {
-            this.world.step(TIME_STEP, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
-            this.physicsTime -= TIME_STEP;
+    
+    private void checkPlayerPowerUpPickup() {
+        // (x,y) of player, truncated or rounded to int
+        int px = (int) player.getX();
+        int py = (int) player.getY();
+    
+        // We gather all power-ups that have been picked up
+        List<PowerUp> toRemove = new ArrayList<>();
+    
+        for (PowerUp p : powerUps) {
+            int puX = (int) p.getX();
+            int puY = (int) p.getY();
+    
+            // If same tile, pick up
+            if (puX == px && puY == py) {
+                // Apply effect
+                applyPowerUpEffect(p);
+                toRemove.add(p);
+            }
         }
+    
+        // Remove them from the map
+        powerUps.removeAll(toRemove);
+    }
+    
+    private void applyPowerUpEffect(PowerUp p) {
+        switch (p.getType()) {
+            case 5:
+                // concurrency bomb
+                player.increaseBombCapacity();
+                break;
+            case 6:
+                // blast radius
+                player.increaseBombRadius();
+                break;
+        }
+        // Possibly play a pickup sound effect, etc.
+    }
 
+    public void addBomb(Bomb bomb) {
+        this.bombs.add(bomb);
+    }
+
+    public List<Bomb> getBombs() {
+        return bombs;
+    }
+
+    private boolean allEnemiesDead() {
+        return enemies.isEmpty();
     }
 
     /** Returns the player on the map. */
@@ -1088,14 +1090,19 @@ public class GameMap {
     }
 
     private void spawnConcurrentPowerUp(int x, int y) {
-        TextureRegion concurrencyRegion = new TextureRegion(Textures.POWER_UP);
+        // For concurrency bombs, use a ‘blue’ power-up sprite or something
+        TextureRegion concurrencyRegion = new TextureRegion(Textures.POWER_UP_GREEN);
         PowerUp p = new PowerUp(world, x, y, 5, concurrencyRegion);
         powerUps.add(p);
     }
-
+    
     private void spawnBlastRadiusPowerUp(int x, int y) {
-        // Same concept as concurrency power-up, but different type.
+        // For blast radius bombs, use a ‘red’ power-up sprite or something else
+        TextureRegion radiusRegion = new TextureRegion(Textures.POWER_UP_RED);
+        PowerUp p = new PowerUp(world, x, y, 6, radiusRegion);
+        powerUps.add(p);
     }
+    
 
     private void ensureExitIfMissing() {
         // Check if you spawned an exit at all.
@@ -1121,21 +1128,31 @@ import de.tum.cit.ase.bomberquest.texture.Drawable;
  * The player has a hitbox, so it can collide with other objects in the game.
  */
 public class Player implements Drawable {
-    
+
     /** Total time elapsed since the game started. We use this for calculating the player movement and animating it. */
     private float elapsedTime;
-    
+
     /** The Box2D hitbox of the player, used for position and collision detection. */
     private final Body hitbox;
-    
-    public Player(World world, float x, float y) {
+
+    // New fields for bombs
+    private int bombCapacity = 1;    // how many bombs can be active at once
+    private int bombsCurrentlyPlaced = 0;
+    private int bombRadius = 1;       // default radius
+
+    // A reference back to the GameMap so we can place bombs there.
+    private final GameMap map;
+
+    public Player(World world, float x, float y, GameMap map) {
+        this.map = map;
         this.hitbox = createHitbox(world, x, y);
     }
-    
+
     /**
      * Creates a Box2D body for the player.
      * This is what the physics engine uses to move the player around and detect collisions with other bodies.
-     * @param world The Box2D world to add the body to.
+     *
+     * @param world  The Box2D world to add the body to.
      * @param startX The initial X position.
      * @param startY The initial Y position.
      * @return The created body.
@@ -1162,132 +1179,105 @@ public class Player implements Drawable {
     }
 
     /**
-     * Move the player around in a circle by updating the linear velocity of its hitbox every frame.
-     * This doesn't actually move the player, but it tells the physics engine how the player should move next frame.
-     * @param frameTime the time since the last frame.
+     * Handles movement each frame, plus checks if SPACE is pressed to place a bomb.
      */
     public void tick(float frameTime) {
         this.elapsedTime += frameTime;
+
+        // Movement logic
         float xVelocity = 0;
         float yVelocity = 0;
-
         if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
             yVelocity = 2;
         } else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
             yVelocity = -2;
         }
-
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
             xVelocity = -2;
         } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
             xVelocity = 2;
         }
-
         this.hitbox.setLinearVelocity(xVelocity, yVelocity);
+
+        // If pressing SPACE, try to place bomb
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            attemptToPlaceBomb();
+        }
+
+       System.out.println("Player velocity: " + this.hitbox.getLinearVelocity());
+       System.out.println("Player position: " + this.hitbox.getPosition());
+    }
+
+    private void attemptToPlaceBomb() {
+        // Only place if we haven't exceeded capacity
+        if (bombsCurrentlyPlaced < bombCapacity) {
+            // Round the player's float position to the nearest tile
+            int bombX = Math.round(getHitbox().getPosition().x);
+            int bombY = Math.round(getHitbox().getPosition().y);
+
+            // Create and add Bomb to the GameMap
+            Bomb newBomb = new Bomb(
+                bombX,
+                bombY,
+                bombRadius,
+                System.currentTimeMillis()
+            );
+
+            // Actually add the bomb to the map so it can be updated & rendered
+            map.addBomb(newBomb);
+
+            bombsCurrentlyPlaced++;
+        }
+    }
+
+    /**
+     * Called by the Bomb when it finishes exploding (so the Player can place another).
+     */
+    public void bombHasExploded() {
+        bombsCurrentlyPlaced = Math.max(0, bombsCurrentlyPlaced - 1);
+    }
+
+    public void increaseBombRadius() {
+        bombRadius = Math.min(bombRadius + 1, 8);
+    }
+
+    public void increaseBombCapacity() {
+        bombCapacity = Math.min(bombCapacity + 1, 8);
     }
 
     public Body getHitbox() {
         return hitbox;
     }
 
-    
     @Override
     public TextureRegion getCurrentAppearance() {
         // Get the frame of the walk down animation that corresponds to the current time.
         return Animations.CHARACTER_WALK_DOWN.getKeyFrame(this.elapsedTime, true);
     }
-    
+
     @Override
     public float getX() {
-        // The x-coordinate of the player is the x-coordinate of the hitbox (this can change every frame).
         return hitbox.getPosition().x;
     }
-    
+
     @Override
     public float getY() {
-        // The y-coordinate of the player is the y-coordinate of the hitbox (this can change every frame).
         return hitbox.getPosition().y;
     }
+
+    public int getBombRadius() {
+        return bombRadius;
+    }
+
+    public int getBombCapacity() {
+        return bombCapacity;
+    }
+
+
     public void render(SpriteBatch batch) {
-        // Get the texture for the player and draw it at the player's current position
+        // Draw the player's current sprite at (x, y)
         batch.draw(getCurrentAppearance(), getX(), getY(), 1f, 1f);
     }
-}
-
-
---- File: core/src/de/tum/cit/ase/bomberquest/map/Chest.java ---
-
-package de.tum.cit.ase.bomberquest.map;
-
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.physics.box2d.*;
-import de.tum.cit.ase.bomberquest.texture.Drawable;
-import de.tum.cit.ase.bomberquest.texture.Textures;
-
-/**
- * A chest is a static object with a hitbox, so the player cannot walk through it.
- */
-public class Chest implements Drawable {
-    
-    // We would normally get the position from the hitbox, but since we don't need to move the chest, we can store the position directly.
-    private final float x;
-    private final float y;
-    
-    /**
-     * Create a chest at the given position.
-     * @param world The Box2D world to add the chest's hitbox to.
-     * @param x The X position.
-     * @param y The Y position.
-     */
-    public Chest(World world, float x, float y) {
-        this.x = x;
-        this.y = y;
-        // Since the hitbox never moves, and we never need to change it, we don't need to store a reference to it.
-        createHitbox(world);
-    }
-    
-    /**
-     * Create a Box2D body for the chest.
-     * @param world The Box2D world to add the body to.
-     */
-    private void createHitbox(World world) {
-        // BodyDef is like a blueprint for the movement properties of the body.
-        BodyDef bodyDef = new BodyDef();
-        // Static bodies never move, but static bodies can collide with them.
-        bodyDef.type = BodyDef.BodyType.StaticBody;
-        // Set the initial position of the body.
-        bodyDef.position.set(this.x, this.y);
-        // Create the body in the world using the body definition.
-        Body body = world.createBody(bodyDef);
-        // Now we need to give the body a shape so the physics engine knows how to collide with it.
-        // We'll use a polygon shape for the chest.
-        PolygonShape box = new PolygonShape();
-        // Make the polygon a square with a side length of 1 tile.
-        box.setAsBox(0.5f, 0.5f);
-        // Attach the shape to the body as a fixture.
-        body.createFixture(box, 1.0f);
-        // We're done with the shape, so we should dispose of it to free up memory.
-        box.dispose();
-        // Set the chest as the user data of the body so we can look up the chest from the body later.
-        body.setUserData(this);
-    }
-    
-    @Override
-    public TextureRegion getCurrentAppearance() {
-        return Textures.CHEST;
-    }
-    
-    @Override
-    public float getX() {
-        return x;
-    }
-    
-    @Override
-    public float getY() {
-        return y;
-    }
-
 }
 
 
@@ -1561,6 +1551,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
+import de.tum.cit.ase.bomberquest.map.Bomb;
 import de.tum.cit.ase.bomberquest.map.Enemy;
 import de.tum.cit.ase.bomberquest.map.Flowers;
 import de.tum.cit.ase.bomberquest.map.Player;
@@ -1594,6 +1585,8 @@ public class GameScreen implements Screen {
     private final GameMap map;
     private final Hud hud;
     private final OrthographicCamera mapCamera;
+    // For countdown
+    private float levelTime = 150f; // 5 minutes
 
 
     /**
@@ -1605,11 +1598,11 @@ public class GameScreen implements Screen {
         this.game = game;
         this.spriteBatch = game.getSpriteBatch();
         this.map = game.getMap();
-        this.hud = new Hud(spriteBatch, game.getSkin().getFont("font"));
         // Create and configure the camera for the game view
         this.mapCamera = new OrthographicCamera();
         this.mapCamera.setToOrtho(false);
-
+        // Create the HUD and pass references it needs
+        this.hud = new Hud(game.getSpriteBatch(), game.getSkin().getFont("font"), this.map);
     }
     
     /**
@@ -1625,6 +1618,12 @@ public class GameScreen implements Screen {
         
         // Clear the previous frame from the screen, or else the picture smears
         ScreenUtils.clear(Color.WHITE);
+
+         // Decrement countdown
+         levelTime -= deltaTime;
+         if (levelTime < 0f) {
+             levelTime = 0f;
+         }
         
         // Cap frame time to 250ms to prevent spiral of death
         float frameTime = Math.min(deltaTime, 0.250f);
@@ -1634,12 +1633,23 @@ public class GameScreen implements Screen {
         
         // Update the camera
         updateCamera();
+
+        // Render the map
+        game.getSpriteBatch().setProjectionMatrix(mapCamera.combined);
+        game.getSpriteBatch().begin();
         
         // Render the map on the screen
         renderMap();
+
+        game.getSpriteBatch().end();
+
+        // Finally, render the HUD on top
+        hud.setTimeRemaining(levelTime); // pass updated time to the HUD
         
         // Render the HUD on the screen
         hud.render();
+
+
     }
 
 
@@ -1658,9 +1668,6 @@ public class GameScreen implements Screen {
         // This configures the spriteBatch to use the camera's perspective when rendering
         spriteBatch.setProjectionMatrix(mapCamera.combined);
 
-        // Start drawing
-        spriteBatch.begin();
-
 
     if (map.getChest() != null) {
         draw(spriteBatch, map.getChest());
@@ -1671,11 +1678,19 @@ public class GameScreen implements Screen {
         draw(spriteBatch, map.getPlayer());
     }
 
+    for (PowerUp p : map.getPowerUps()) {
+        draw(spriteBatch, p);
+    }
+
     // For walls, skip null entries
     for (WallPath wall : map.getWalls()) {
         if (wall != null) {
             draw(spriteBatch, wall);
         }
+    }
+
+    for (Bomb b : map.getBombs()) {
+        b.render(spriteBatch);
     }
 
     if (map.getEntrance() != null) {
@@ -1684,14 +1699,8 @@ public class GameScreen implements Screen {
     for (Enemy e : map.getEnemies()) {
         draw(spriteBatch, e);
     }
-    for (PowerUp p : map.getPowerUps()) {
-        draw(spriteBatch, p);
-    }
 
     draw(spriteBatch, map.getExit());
-
-    // Finish drawing, i.e. send the drawn items to the graphics card
-    spriteBatch.end();
     }
     /**
      * Draws this object on the screen.
@@ -1763,290 +1772,6 @@ public class GameScreen implements Screen {
 }
 
 
---- File: core/src/de/tum/cit/ase/bomberquest/screen/MenuScreen.java ---
-
-package de.tum.cit.ase.bomberquest.screen;
-
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.badlogic.gdx.utils.viewport.Viewport;
-import de.tum.cit.ase.bomberquest.BomberQuestGame;
-
-/**
- * The MenuScreen class is responsible for displaying the main menu of the game.
- * It extends the LibGDX Screen class and sets up the UI components for the menu.
- */
-public class MenuScreen implements Screen {
-
-    private final Stage stage;
-
-    /**
-     * Constructor for MenuScreen. Sets up the camera, viewport, stage, and UI elements.
-     *
-     * @param game The main game class, used to access global resources and methods.
-     */
-    public MenuScreen(BomberQuestGame game) {
-        var camera = new OrthographicCamera();
-        camera.zoom = 1.5f; // Set camera zoom for a closer view
-
-        Viewport viewport = new ScreenViewport(camera); // Create a viewport with the camera
-        stage = new Stage(viewport, game.getSpriteBatch()); // Create a stage for UI elements
-
-        Table table = new Table(); // Create a table for layout
-        table.setFillParent(true); // Make the table fill the stage
-        stage.addActor(table); // Add the table to the stage
-
-        // Add a label as a title
-        table.add(new Label("Hello World from the Menu!", game.getSkin(), "title")).padBottom(80).row();
-
-        // Create and add a button to go to the game screen
-        TextButton goToGameButton = new TextButton("Go To Game", game.getSkin());
-        table.add(goToGameButton).width(300).row();
-        goToGameButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.goToGame(); // Change to the game screen when button is pressed
-            }
-        });
-    }
-
-    /**
-     * The render method is called every frame to render the menu screen.
-     * It clears the screen and draws the stage.
-     * @param deltaTime The time in seconds since the last render.
-     */
-    @Override
-    public void render(float deltaTime) {
-        float frameTime = Math.min(deltaTime, 0.250f); // Cap frame time to 250ms to prevent spiral of death        ScreenUtils.clear(Color.BLACK);
-        ScreenUtils.clear(Color.BLACK); // Clear the screen
-        stage.act(frameTime); // Update the stage
-        stage.draw(); // Draw the stage
-    }
-
-    /**
-     * Resize the stage when the screen is resized.
-     * @param width The new width of the screen.
-     * @param height The new height of the screen.
-     */
-    @Override
-    public void resize(int width, int height) {
-        stage.getViewport().update(width, height, true); // Update the stage viewport on resize
-    }
-
-    @Override
-    public void dispose() {
-        // Dispose of the stage when screen is disposed
-        stage.dispose();
-    }
-
-    @Override
-    public void show() {
-        // Set the input processor so the stage can receive input events
-        Gdx.input.setInputProcessor(stage);
-    }
-
-    // The following methods are part of the Screen interface but are not used in this screen.
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
-
-    @Override
-    public void hide() {
-    }
-}
-
-
---- File: core/src/de/tum/cit/ase/bomberquest/screen/Hud.java ---
-
-package de.tum.cit.ase.bomberquest.screen;
-
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-
-/**
- * A Heads-Up Display (HUD) that displays information on the screen.
- * It uses a separate camera so that it is always fixed on the screen.
- */
-public class Hud {
-    
-    /** The SpriteBatch used to draw the HUD. This is the same as the one used in the GameScreen. */
-    private final SpriteBatch spriteBatch;
-    /** The font used to draw text on the screen. */
-    private final BitmapFont font;
-    /** The camera used to render the HUD. */
-    private final OrthographicCamera camera;
-    
-    public Hud(SpriteBatch spriteBatch, BitmapFont font) {
-        this.spriteBatch = spriteBatch;
-        this.font = font;
-        this.camera = new OrthographicCamera();
-    }
-    
-    /**
-     * Renders the HUD on the screen.
-     * This uses a different OrthographicCamera so that the HUD is always fixed on the screen.
-     */
-    public void render() {
-        // Render from the camera's perspective
-        spriteBatch.setProjectionMatrix(camera.combined);
-        // Start drawing
-        spriteBatch.begin();
-        // Draw the HUD elements
-        font.draw(spriteBatch, "Press Esc to Pause!", 10, Gdx.graphics.getHeight() - 10);
-        // Finish drawing
-        spriteBatch.end();
-    }
-    
-    /**
-     * Resizes the HUD when the screen size changes.
-     * This is called when the window is resized.
-     * @param width The new width of the screen.
-     * @param height The new height of the screen.
-     */
-    public void resize(int width, int height) {
-        camera.setToOrtho(false, width, height);
-    }
-    
-}
-
-
---- File: core/src/de/tum/cit/ase/bomberquest/screen/VictoryScreen.java ---
-
-package de.tum.cit.ase.bomberquest.screen;
-
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import de.tum.cit.ase.bomberquest.BomberQuestGame;
-
-/**
- * The VictoryScreen class represents the screen displayed when the player achieves victory.
- * It provides options to return to the main menu.
- */
-public class VictoryScreen implements Screen {
-
-    private final BomberQuestGame game;
-    private final Screen previousScreen;
-    private Stage stage;
-    private final Skin skin;
-
-    /**
-     * Creates a new VictoryScreen.
-     *
-     * @param game           The main game instance
-     * @param previousScreen The previous screen to potentially return to
-     * @param skin          The skin used for UI elements
-     */
-    public VictoryScreen(BomberQuestGame game, Screen previousScreen, Skin skin) {
-        this.game = game;
-        this.previousScreen = previousScreen;
-        this.skin = skin;
-    }
-
-    @Override
-    public void show() {
-        stage = new Stage();
-        Table table = new Table();
-        table.setFillParent(true);
-        stage.addActor(table);
-        Gdx.input.setInputProcessor(stage);
-
-        // Create victory label with animation
-        Label victoryLabel = new Label("Victory!", skin, "title");
-        table.add(victoryLabel).padBottom(80).row();
-
-        // Add blinking animation to the victory label
-        victoryLabel.addAction(Actions.forever(Actions.sequence(
-                Actions.fadeIn(0.7f),
-                Actions.fadeOut(0.7f)
-        )));
-
-        // Create and add the back to menu button
-        TextButton backToMenuButton = new TextButton("Return to Menu", skin);
-        table.add(backToMenuButton).padBottom(20).row();
-
-        // Add click listener for the menu button
-        backToMenuButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                game.goToMenu();
-            }
-        });
-
-        // Optional: Add more stats or information about the victory
-        Label statsLabel = new Label("Congratulations! You've completed the level!", skin);
-        table.add(statsLabel).padTop(20).row();
-    }
-
-    @Override
-    public void render(float delta) {
-        // Clear the screen
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        // Update and draw the stage
-        stage.act(delta);
-        stage.draw();
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        stage.getViewport().update(width, height, true);
-    }
-
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
-
-    @Override
-    public void hide() {
-    }
-
-    @Override
-    public void dispose() {
-        if (stage != null) {
-            stage.dispose();
-        }
-    }
-    //test
-    //sync
-}
-
---- File: core/src/de/tum/cit/ase/bomberquest/screen/GameOverScreen.java ---
-
-package de.tum.cit.ase.bomberquest.screen;
-
-public class GameOverScreen {
-}
-
-
 --- File: core/src/de/tum/cit/ase/bomberquest/texture/Drawable.java ---
 
 package de.tum.cit.ase.bomberquest.texture;
@@ -2107,8 +1832,10 @@ public class Textures {
     public static final TextureRegion CHEST = SpriteSheet.BASIC_TILES.at(5, 5);
     public static final TextureRegion ENTRANCE = SpriteSheet.BASIC_TILES.at(4, 6);
     public static final TextureRegion EXIT = SpriteSheet.BASIC_TILES.at(2,4);
-    public static final TextureRegion POWER_UP = SpriteSheet.BASIC_TILES.at(3,3);
-    public static final TextureRegion ENEMY = SpriteSheet.CHARACTER.at(3,1);
+    public static final TextureRegion POWER_UP_GREEN = SpriteSheet.BASIC_TILES.at(3,4);
+    public static final TextureRegion POWER_UP_RED = SpriteSheet.BASIC_TILES.at(3,2);
+    public static final TextureRegion ENEMY = SpriteSheet.ORIGINAL_BOMBERMAN.at(22,1);
+    public static final TextureRegion BOMB = SpriteSheet.BASIC_TILES.at(3, 3);
     
 }
 
@@ -2140,7 +1867,9 @@ public enum SpriteSheet {
     /** The basic tiles spritesheet, which has a grid size of 16x16. */
     BASIC_TILES("basictiles.png", 16, 16),
 
-    POWER_UP("powerup.png", 16, 16);
+    POWER_UP("powerup.png", 16, 16),
+
+    ORIGINAL_BOMBERMAN("original-bomberman.png", 16, 16);
     
 private final Texture spritesheet;
     private final int width;
@@ -2215,593 +1944,4 @@ public class Animations {
 package de.tum.cit.ase.bomberquest.entities;
 
 public class Bomb {
-}
-
-
---- File: desktop/build.gradle ---
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-}
-sourceSets.main.java.srcDirs = [ "src/" ]
-sourceSets.main.resources.srcDirs = ["../assets"]
-
-project.ext.mainClassName = "de.tum.cit.ase.bomberquest.DesktopLauncher"
-project.ext.assetsDir = new File("../assets")
-
-import org.gradle.internal.os.OperatingSystem
-
-tasks.register('run', JavaExec) {
-    dependsOn classes
-    mainClass = project.mainClassName
-    classpath = sourceSets.main.runtimeClasspath
-    standardInput = System.in
-    workingDir = file("../")
-    ignoreExitValue = true
-
-    if (OperatingSystem.current() == OperatingSystem.MAC_OS) {
-        // Required to run on macOS
-        jvmArgs += "-XstartOnFirstThread"
-    }
-}
-
-tasks.register('debug', JavaExec) {
-    dependsOn classes
-    mainClass = project.mainClassName
-    classpath = sourceSets.main.runtimeClasspath
-    standardInput = System.in
-    workingDir = file("../")
-    ignoreExitValue = true
-    debug = true
-}
-
-tasks.register('dist', Jar) {
-    duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
-    manifest {
-        attributes 'Main-Class': project.mainClassName
-    }
-    dependsOn configurations.runtimeClasspath
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    with jar
-}
-
-
-dist.dependsOn classes
-
-eclipse.project.name = appName + "-desktop"
-
-
---- File: desktop/bin/main/skin/craftacular/craftacular-ui.json ---
-
-{
-com.badlogic.gdx.graphics.g2d.BitmapFont: {
-	bold: {
-		file: font-bold-export.fnt
-	}
-	font: {
-		file: font-export.fnt
-	}
-	title: {
-		file: font-title-export.fnt
-	}
-}
-com.badlogic.gdx.graphics.Color: {
-	gray: {
-		r: 0.55
-		g: 0.55
-		b: 0.55
-		a: 1
-	}
-	green: {
-		r: 0.03529522
-		g: 0.77666664
-		b: 0
-		a: 1
-	}
-	white: {
-		r: 1
-		g: 1
-		b: 1
-		a: 1
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Skin$TintedDrawable: {
-	gray: {
-		name: white
-		color: {
-			r: 0.73666674
-			g: 0.73666674
-			b: 0.73666674
-			a: 1
-		}
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Button$ButtonStyle: {
-	default: {
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ImageButton$ImageButtonStyle: {
-	default: {
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ImageTextButton$ImageTextButtonStyle: {
-	default: {
-		font: font
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Label$LabelStyle: {
-	default: {
-		font: font
-	}
-	dim: {
-		font: font
-		fontColor: gray
-	}
-	bold: {
-		font: bold
-		background: underline
-	}
-	title: {
-		font: title
-	}
-	xp: {
-		font: bold
-		fontColor: green
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ProgressBar$ProgressBarStyle: {
-	default-horizontal: {
-		background: slider
-		knobBefore: slider-knob
-	}
-	default-vertical: {
-		background: slider
-		knob: slider-knob
-	}
-	hunger: {
-		background: meat-bg
-		knobAfter: meat
-	}
-	health: {
-		background: heart-bg
-		knobBefore: heart
-	}
-	xp: {
-		background: xp-bg
-		knobBefore: xp
-	}
-	armor: {
-		background: armor-bg
-		knobBefore: armor
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ScrollPane$ScrollPaneStyle: {
-	default: {
-		background: scroll-bg
-		hScroll: scroll-horizontal
-		hScrollKnob: scroll-knob-horizontal
-		vScroll: scroll-vertical
-		vScrollKnob: scroll-knob-vertical
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Slider$SliderStyle: {
-	default-horizontal: {
-		background: slider
-		knob: slider-knob
-	}
-	default-vertical: {
-		background: slider
-		knob: slider-knob
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.TextButton$TextButtonStyle: {
-	default: {
-		font: font
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.TextField$TextFieldStyle: {
-	default: {
-		font: font
-		fontColor: white
-		background: text-field
-		cursor: cursor
-		selection: gray
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.TextTooltip$TextTooltipStyle: {
-	default: {
-		label: default
-		background: tooltip
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Window$WindowStyle: {
-	default: {
-		background: window
-		titleFont: font
-	}
-}
-}
-
---- File: desktop/build/resources/main/skin/craftacular/craftacular-ui.json ---
-
-{
-com.badlogic.gdx.graphics.g2d.BitmapFont: {
-	bold: {
-		file: font-bold-export.fnt
-	}
-	font: {
-		file: font-export.fnt
-	}
-	title: {
-		file: font-title-export.fnt
-	}
-}
-com.badlogic.gdx.graphics.Color: {
-	gray: {
-		r: 0.55
-		g: 0.55
-		b: 0.55
-		a: 1
-	}
-	green: {
-		r: 0.03529522
-		g: 0.77666664
-		b: 0
-		a: 1
-	}
-	white: {
-		r: 1
-		g: 1
-		b: 1
-		a: 1
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Skin$TintedDrawable: {
-	gray: {
-		name: white
-		color: {
-			r: 0.73666674
-			g: 0.73666674
-			b: 0.73666674
-			a: 1
-		}
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Button$ButtonStyle: {
-	default: {
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ImageButton$ImageButtonStyle: {
-	default: {
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ImageTextButton$ImageTextButtonStyle: {
-	default: {
-		font: font
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Label$LabelStyle: {
-	default: {
-		font: font
-	}
-	dim: {
-		font: font
-		fontColor: gray
-	}
-	bold: {
-		font: bold
-		background: underline
-	}
-	title: {
-		font: title
-	}
-	xp: {
-		font: bold
-		fontColor: green
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ProgressBar$ProgressBarStyle: {
-	default-horizontal: {
-		background: slider
-		knobBefore: slider-knob
-	}
-	default-vertical: {
-		background: slider
-		knob: slider-knob
-	}
-	hunger: {
-		background: meat-bg
-		knobAfter: meat
-	}
-	health: {
-		background: heart-bg
-		knobBefore: heart
-	}
-	xp: {
-		background: xp-bg
-		knobBefore: xp
-	}
-	armor: {
-		background: armor-bg
-		knobBefore: armor
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ScrollPane$ScrollPaneStyle: {
-	default: {
-		background: scroll-bg
-		hScroll: scroll-horizontal
-		hScrollKnob: scroll-knob-horizontal
-		vScroll: scroll-vertical
-		vScrollKnob: scroll-knob-vertical
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Slider$SliderStyle: {
-	default-horizontal: {
-		background: slider
-		knob: slider-knob
-	}
-	default-vertical: {
-		background: slider
-		knob: slider-knob
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.TextButton$TextButtonStyle: {
-	default: {
-		font: font
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.TextField$TextFieldStyle: {
-	default: {
-		font: font
-		fontColor: white
-		background: text-field
-		cursor: cursor
-		selection: gray
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.TextTooltip$TextTooltipStyle: {
-	default: {
-		label: default
-		background: tooltip
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Window$WindowStyle: {
-	default: {
-		background: window
-		titleFont: font
-	}
-}
-}
-
---- File: desktop/src/de/tum/cit/ase/bomberquest/DesktopLauncher.java ---
-
-package de.tum.cit.ase.bomberquest;
-
-import com.badlogic.gdx.Graphics;
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import games.spooky.gdx.nativefilechooser.desktop.DesktopFileChooser;
-
-
-
-/**
- * The DesktopLauncher class is the entry point for the desktop version of the Bomber Quest game.
- * It sets up the game window and launches the game using LibGDX framework.
- */
-public class DesktopLauncher {
-	/**
-	 * The main method sets up the configuration for the game window and starts the application.
-	 *
-	 * @param arg Command line arguments (not used in this application)
-	 */
-	public static void main(String[] arg) {
-		// Configuration for the game window
-		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
-		config.setTitle("Bomber Quest"); // Set the window title
-
-		// Get the display mode of the current monitor
-		Graphics.DisplayMode displayMode = Lwjgl3ApplicationConfiguration.getDisplayMode();
-		// Set the window size to 80% of the screen width and height
-		config.setWindowedMode(
-				Math.round(0.8f * displayMode.width),
-				Math.round(0.8f * displayMode.height)
-		);
-		config.useVsync(true); // Enable vertical sync
-		config.setForegroundFPS(60); // Set the foreground frames per second
-
-		System.out.println("Working directory: " + System.getProperty("user.dir"));
-
-		// Launch the game
-		new Lwjgl3Application(new BomberQuestGame(new DesktopFileChooser()), config);
-	}
-}
-
-
---- File: assets/skin/craftacular/craftacular-ui.json ---
-
-{
-com.badlogic.gdx.graphics.g2d.BitmapFont: {
-	bold: {
-		file: font-bold-export.fnt
-	}
-	font: {
-		file: font-export.fnt
-	}
-	title: {
-		file: font-title-export.fnt
-	}
-}
-com.badlogic.gdx.graphics.Color: {
-	gray: {
-		r: 0.55
-		g: 0.55
-		b: 0.55
-		a: 1
-	}
-	green: {
-		r: 0.03529522
-		g: 0.77666664
-		b: 0
-		a: 1
-	}
-	white: {
-		r: 1
-		g: 1
-		b: 1
-		a: 1
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Skin$TintedDrawable: {
-	gray: {
-		name: white
-		color: {
-			r: 0.73666674
-			g: 0.73666674
-			b: 0.73666674
-			a: 1
-		}
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Button$ButtonStyle: {
-	default: {
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ImageButton$ImageButtonStyle: {
-	default: {
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ImageTextButton$ImageTextButtonStyle: {
-	default: {
-		font: font
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Label$LabelStyle: {
-	default: {
-		font: font
-	}
-	dim: {
-		font: font
-		fontColor: gray
-	}
-	bold: {
-		font: bold
-		background: underline
-	}
-	title: {
-		font: title
-	}
-	xp: {
-		font: bold
-		fontColor: green
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ProgressBar$ProgressBarStyle: {
-	default-horizontal: {
-		background: slider
-		knobBefore: slider-knob
-	}
-	default-vertical: {
-		background: slider
-		knob: slider-knob
-	}
-	hunger: {
-		background: meat-bg
-		knobAfter: meat
-	}
-	health: {
-		background: heart-bg
-		knobBefore: heart
-	}
-	xp: {
-		background: xp-bg
-		knobBefore: xp
-	}
-	armor: {
-		background: armor-bg
-		knobBefore: armor
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.ScrollPane$ScrollPaneStyle: {
-	default: {
-		background: scroll-bg
-		hScroll: scroll-horizontal
-		hScrollKnob: scroll-knob-horizontal
-		vScroll: scroll-vertical
-		vScrollKnob: scroll-knob-vertical
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Slider$SliderStyle: {
-	default-horizontal: {
-		background: slider
-		knob: slider-knob
-	}
-	default-vertical: {
-		background: slider
-		knob: slider-knob
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.TextButton$TextButtonStyle: {
-	default: {
-		font: font
-		up: button
-		over: button-hover
-		disabled: button-disabled
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.TextField$TextFieldStyle: {
-	default: {
-		font: font
-		fontColor: white
-		background: text-field
-		cursor: cursor
-		selection: gray
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.TextTooltip$TextTooltipStyle: {
-	default: {
-		label: default
-		background: tooltip
-	}
-}
-com.badlogic.gdx.scenes.scene2d.ui.Window$WindowStyle: {
-	default: {
-		background: window
-		titleFont: font
-	}
-}
 }

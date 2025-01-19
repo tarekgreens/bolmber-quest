@@ -18,6 +18,7 @@
 │                           ├── entities
 │                           │   └── Bomb.java
 │                           ├── map
+│                           │   ├── Bomb.java
 │                           │   ├── Chest.java
 │                           │   ├── DestructibleWall.java
 │                           │   ├── Enemy.java

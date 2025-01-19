@@ -12,7 +12,7 @@ import de.tum.cit.ase.bomberquest.texture.Drawable;
  * Represents the player character in the game.
  * The player has a hitbox, so it can collide with other objects in the game.
  */
-public class Player implements Drawable {
+public class Player extends Object implements Drawable {
 
     /** Total time elapsed since the game started. We use this for calculating the player movement and animating it. */
     private float elapsedTime;
@@ -29,6 +29,7 @@ public class Player implements Drawable {
     private final GameMap map;
 
     public Player(World world, float x, float y, GameMap map) {
+        super(x, y, null);
         this.map = map;
         this.hitbox = createHitbox(world, x, y);
     }
@@ -56,6 +57,7 @@ public class Player implements Drawable {
         fixtureDef.density = 1.0f;
         fixtureDef.friction = 0.5f;
         fixtureDef.restitution = 0.0f;
+        fixtureDef.isSensor = false;
 
         body.createFixture(fixtureDef);
         body.setUserData(this);
@@ -88,6 +90,9 @@ public class Player implements Drawable {
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             attemptToPlaceBomb();
         }
+
+       System.out.println("Player velocity: " + this.hitbox.getLinearVelocity());
+       System.out.println("Player position: " + this.hitbox.getPosition());
     }
 
     private void attemptToPlaceBomb() {
@@ -122,7 +127,7 @@ public class Player implements Drawable {
     public void increaseBombRadius() {
         bombRadius = Math.min(bombRadius + 1, 8);
     }
-    
+
     public void increaseBombCapacity() {
         bombCapacity = Math.min(bombCapacity + 1, 8);
     }
