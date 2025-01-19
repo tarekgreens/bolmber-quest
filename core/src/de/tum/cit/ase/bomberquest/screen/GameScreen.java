@@ -44,7 +44,7 @@ public class GameScreen implements Screen {
     private final Hud hud;
     private final OrthographicCamera mapCamera;
     // For countdown
-    private float levelTime = 30f; // 5 minutes
+    private float levelTime = 150f; // 5 minutes
 
 
     /**
@@ -127,8 +127,6 @@ public class GameScreen implements Screen {
         spriteBatch.setProjectionMatrix(mapCamera.combined);
 
 
-
-
     if (map.getChest() != null) {
         draw(spriteBatch, map.getChest());
     }
@@ -136,6 +134,10 @@ public class GameScreen implements Screen {
     // Player should never be null if you instantiate it, but just in case:
     if (map.getPlayer() != null) {
         draw(spriteBatch, map.getPlayer());
+    }
+
+    for (PowerUp p : map.getPowerUps()) {
+        draw(spriteBatch, p);
     }
 
     // For walls, skip null entries
@@ -154,9 +156,6 @@ public class GameScreen implements Screen {
     }
     for (Enemy e : map.getEnemies()) {
         draw(spriteBatch, e);
-    }
-    for (PowerUp p : map.getPowerUps()) {
-        draw(spriteBatch, p);
     }
 
     draw(spriteBatch, map.getExit());

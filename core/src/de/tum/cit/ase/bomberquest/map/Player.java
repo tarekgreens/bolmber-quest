@@ -21,7 +21,7 @@ public class Player implements Drawable {
     private final Body hitbox;
 
     // New fields for bombs
-    private int bombCapacity = 10;    // how many bombs can be active at once
+    private int bombCapacity = 1;    // how many bombs can be active at once
     private int bombsCurrentlyPlaced = 0;
     private int bombRadius = 1;       // default radius
 
@@ -119,13 +119,12 @@ public class Player implements Drawable {
         bombsCurrentlyPlaced = Math.max(0, bombsCurrentlyPlaced - 1);
     }
 
-    // For picking up power-ups type=5 (more bombs) or type=6 (larger radius)
-    public void increaseBombCapacity() {
-        bombCapacity++;
-    }
-
     public void increaseBombRadius() {
-        bombRadius++;
+        bombRadius = Math.min(bombRadius + 1, 8);
+    }
+    
+    public void increaseBombCapacity() {
+        bombCapacity = Math.min(bombCapacity + 1, 8);
     }
 
     public Body getHitbox() {

@@ -88,6 +88,8 @@ public class GameMap {
         // 2) Update physics (player movement, collisions)
         doPhysicsStep(frameTime);
 
+        checkPlayerPowerUpPickup();
+
         // 3) Update bombs
         List<Bomb> toRemove = new ArrayList<>();
         for (Bomb bomb : bombs) {
@@ -110,6 +112,45 @@ public class GameMap {
             world.step(TIME_STEP, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
             physicsTime -= TIME_STEP;
         }
+    }
+
+    
+    private void checkPlayerPowerUpPickup() {
+        // (x,y) of player, truncated or rounded to int
+        int px = (int) player.getX();
+        int py = (int) player.getY();
+    
+        // We gather all power-ups that have been picked up
+        List<PowerUp> toRemove = new ArrayList<>();
+    
+        for (PowerUp p : powerUps) {
+            int puX = (int) p.getX();
+            int puY = (int) p.getY();
+    
+            // If same tile, pick up
+            if (puX == px && puY == py) {
+                // Apply effect
+                applyPowerUpEffect(p);
+                toRemove.add(p);
+            }
+        }
+    
+        // Remove them from the map
+        powerUps.removeAll(toRemove);
+    }
+    
+    private void applyPowerUpEffect(PowerUp p) {
+        switch (p.getType()) {
+            case 5:
+                // concurrency bomb
+                player.increaseBombCapacity();
+                break;
+            case 6:
+                // blast radius
+                player.increaseBombRadius();
+                break;
+        }
+        // Possibly play a pickup sound effect, etc.
     }
 
     public void addBomb(Bomb bomb) {
@@ -272,14 +313,19 @@ public class GameMap {
     }
 
     private void spawnConcurrentPowerUp(int x, int y) {
-        TextureRegion concurrencyRegion = new TextureRegion(Textures.POWER_UP);
+        // For concurrency bombs, use a ‘blue’ power-up sprite or something
+        TextureRegion concurrencyRegion = new TextureRegion(Textures.POWER_UP_GREEN);
         PowerUp p = new PowerUp(world, x, y, 5, concurrencyRegion);
         powerUps.add(p);
     }
-
+    
     private void spawnBlastRadiusPowerUp(int x, int y) {
-        // Same concept as concurrency power-up, but different type.
+        // For blast radius bombs, use a ‘red’ power-up sprite or something else
+        TextureRegion radiusRegion = new TextureRegion(Textures.POWER_UP_RED);
+        PowerUp p = new PowerUp(world, x, y, 6, radiusRegion);
+        powerUps.add(p);
     }
+    
 
     private void ensureExitIfMissing() {
         // Check if you spawned an exit at all.
