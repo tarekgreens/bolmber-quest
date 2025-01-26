@@ -11,7 +11,7 @@ import java.util.List;
 public class GameMapLogic {
 
     private final TileMap tileMap;
-    private final Player player;
+    private Player player;
 
     private final List<Bomb> bombs = new ArrayList<>();
     private final List<Enemy> enemies = new ArrayList<>();
@@ -29,39 +29,45 @@ public class GameMapLogic {
         bombs.add(bomb);
     }
 
-    public void bombHasExploded(Bomb bomb) {
-        bombs.remove(bomb);
-        player.bombExploded(); 
-    }
-
     /**
      * Called each frame from GameScreen.
      */
     public void update(float delta) {
         if (gameOver) return; // Freeze logic if game ended
 
-        // 1) Update bombs
-        for (Bomb b : bombs) {
+        // 1) Update bombs in a safe iterator loop
+        Iterator<Bomb> bombIt = bombs.iterator();
+        while (bombIt.hasNext()) {
+            Bomb b = bombIt.next();
             b.update(delta);
+            if (b.isExploded()) {
+                bombIt.remove();
+                player.bombExploded();
+            }
         }
+        // => While bombs update, any enemies killed by handleExplosionTile(...) are removed from enemies.
 
-        // 2) Update enemies
-        for (Enemy e : enemies) {
+        // 2) Now update enemies AFTER bombs are finished,
+        //    using a simple index loop. That way, if handleExplosionTile
+        //    removed some enemies, we won't trigger concurrency issues.
+        for (int i = enemies.size() - 1; i >= 0; i--) {
+            Enemy e = enemies.get(i);
             e.update(delta);
+
+            // If you ever needed to remove an enemy from inside e.update(...),
+            // you would mark it dead in Enemy and remove it here:
+            //   if (e.isDead()) enemies.remove(i);
         }
 
-        // 3) Check if player stands on a power-up
-        Iterator<PowerUp> it = powerUps.iterator();
-        while(it.hasNext()) {
-            PowerUp p = it.next();
+        // 3) Check if player stands on a power‐up
+        Iterator<PowerUp> pIt = powerUps.iterator();
+        while (pIt.hasNext()) {
+            PowerUp p = pIt.next();
+            // If the player is on that tile => apply powerup => remove
             if (p.getTileX() == player.getTileX() && p.getTileY() == player.getTileY()) {
-                // pick it up
-                if (p.getPowerType()==5) { // concurrency
-                    player.increaseBombCapacity();
-                } else if (p.getPowerType()==6) { // blast radius
-                    player.increaseBombRadius();
-                }
-                it.remove();
+                if (p.getPowerType() == 5) player.increaseBombCapacity();
+                else if (p.getPowerType() == 6) player.increaseBombRadius();
+                pIt.remove();
             }
         }
     }
@@ -90,9 +96,9 @@ public class GameMapLogic {
         }
 
         // kill enemies in that tile
-        for (int i=enemies.size()-1; i>=0; i--) {
+        for (int i = enemies.size() - 1; i >= 0; i--) {
             Enemy e = enemies.get(i);
-            if (e.getTileX()==x && e.getTileY()==y) {
+            if (e.getTileX() == x && e.getTileY() == y) {
                 enemies.remove(i);
             }
         }
@@ -117,6 +123,10 @@ public class GameMapLogic {
     public String getGameOverReason(){return gameOverReason;}
 
     public Player getPlayer() { return player; }
+    public GameMapLogic setPlayer(Player player) {
+        this.player = player;
+        return this;
+    }
 
     public List<Enemy> getEnemies() { return enemies; }
     public List<Bomb> getBombs() { return bombs; }

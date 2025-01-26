@@ -25,11 +25,12 @@
 │                           │   ├── Entrance.java
 │                           │   ├── Exit.java
 │                           │   ├── Flowers.java
-│                           │   ├── GameMap.java
+│                           │   ├── GameMapLogic.java
 │                           │   ├── IndestructibleWall.java
 │                           │   ├── Object.java
 │                           │   ├── Player.java
 │                           │   ├── PowerUp.java
+│                           │   ├── TileMap.java
 │                           │   └── WallPath.java
 │                           ├── screen
 │                           │   ├── GameOverScreen.java

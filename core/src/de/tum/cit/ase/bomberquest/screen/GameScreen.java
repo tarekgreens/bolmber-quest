@@ -28,8 +28,10 @@ public class GameScreen implements Screen {
     private TileMap tileMap;
     private GameMapLogic logic; 
     private Player player;
+    private Hud hud;
 
     private float tileSizePx = 16f; // each tile is 16×16
+    private float timeLeft = 120f;
 
     public GameScreen(BomberQuestGame game, String mapFile) {
         this.game = game;
@@ -42,20 +44,14 @@ public class GameScreen implements Screen {
         tileMap = new TileMap(40,24); // if you know it's 40×24
         tileMap.loadFromProperties(mapFile);
 
+        // 3) Create the logic that holds bombs, enemies, powerups
+        logic = new GameMapLogic(tileMap, player);
+
         // 2) Create a Player at the tileMap's entrance
         TextureRegion playerSprite = Textures.ENEMY; 
         // Suppose you have Textures.CHARACTER or something
-        player = new Player(tileMap, tileMap.getEntranceX(), tileMap.getEntranceY(), playerSprite, null);
-
-        // 3) Create the logic that holds bombs, enemies, powerups
-        logic = new GameMapLogic(tileMap, player);
-        // Now that we have logic, fix the player's logic reference
-        // (We used a 'null' above, let's fix that)
         player = new Player(tileMap, tileMap.getEntranceX(), tileMap.getEntranceY(), playerSprite, logic);
-        logic.getPlayer().bombExploded(); // ignore this line if desired, just re-init
-
-        // Actually re-create the player with the correct reference
-        logic = new GameMapLogic(tileMap, player);
+        logic.setPlayer(player);
 
         // 4) Spawn enemies from tileMap enemySpawns
         for (TileMap.EnemySpawn es : tileMap.getEnemySpawns()) {
@@ -70,6 +66,10 @@ public class GameScreen implements Screen {
             PowerUp p = new PowerUp(pus.x, pus.y, pus.type, pSprite);
             logic.addPowerUp(p);
         }
+
+        // Instantiate HUD (reusing the same SpriteBatch and a simple BitmapFont):
+        // If you already have a separate font, pass that instead of a new BitmapFont().
+        this.hud = new Hud(game.getSpriteBatch(), new BitmapFont());
     }
 
     @Override
@@ -80,6 +80,24 @@ public class GameScreen implements Screen {
             game.goToMenu();
             return;
         }
+
+        // -- 1) Update countdown timer
+        timeLeft -= delta;
+        if (timeLeft <= 0) {
+            // Time ran out -> end the game
+            System.out.println("Game Over - Timer has expired!");
+            game.goToMenu();
+            return;
+        }
+
+        // -- 2) Update gameplay logic
+        player.update();
+        logic.update(delta);
+
+        // -- 3) Update camera and draw map/objects
+        clampCamera80Percent();
+        camera.update();
+        batch.setProjectionMatrix(camera.combined);
 
         ScreenUtils.clear(Color.BLACK);
 
@@ -130,6 +148,19 @@ public class GameScreen implements Screen {
         player.render(batch, tileSizePx);
 
         batch.end();
+
+                // -- 4) Render the HUD on top of everything
+        // Number of enemies left
+        int enemiesLeft = logic.getEnemies().size();
+        // For a simple “exit unlocked” check, assume “unlocked if all enemies are dead”
+        boolean exitUnlocked = (enemiesLeft == 0);
+
+        hud.render(
+            player,
+            timeLeft,
+            enemiesLeft,
+            exitUnlocked
+        );
     }
 
     /**
@@ -205,6 +236,8 @@ public class GameScreen implements Screen {
     @Override
     public void resize(int width, int height) {
         viewport.update(width,height,false);
+        // Also let the HUD know about the new screen size
+        hud.resize(width, height);
     }
 
     @Override

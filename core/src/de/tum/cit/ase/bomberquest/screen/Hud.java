@@ -23,11 +23,25 @@ public class Hud {
         hudCamera = new OrthographicCamera();
     }
     
-    public void render(Player player) {
+    public void render(Player player, float timeLeft, int enemiesLeft, boolean exitUnlocked) {
         batch.setProjectionMatrix(hudCamera.combined);
         batch.begin();
-        font.draw(batch, "Bomb Radius: " + player.getBombRadius(), 10, 460);
-        font.draw(batch, "Bomb Capacity: " + player.getBombCapacity(), 10, 440);
+
+        // Build a single line of text
+        // You can break this into two lines or more if you want to split it.
+        String hudLine = String.format(
+            "BombRadius: %d   BombCap: %d   TimeLeft: %d   Enemies: %d   Exit: %s",
+            player.getBombRadius(),
+            player.getBombCapacity(),
+            (int) timeLeft,
+            enemiesLeft,
+            exitUnlocked ? "Unlocked" : "Locked"
+        );
+
+        // Draw near the top-left. Subtract e.g. 10px from the top so it’s not offscreen
+        float margin = 10;
+        font.draw(batch, hudLine, margin, hudCamera.viewportHeight - margin);
+
         batch.end();
     }
 

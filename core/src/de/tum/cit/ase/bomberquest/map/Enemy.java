@@ -28,13 +28,13 @@ public class Enemy {
 
     public void update(float delta) {
         dirTimer += delta;
-        if (dirTimer>= dirInterval) {
-            dirTimer=0f;
-            pickRandomDirection();
+        if (dirTimer >= dirInterval) {
+            dirTimer = 0f;
+            pickRandomDirection(); 
+            tryMove(dx, dy); // One tile
         }
-        tryMove(dx, dy);
 
-        // If same tile as player => kill player
+        // Check for collision with player
         if (tileX == logic.getPlayer().getTileX() && tileY == logic.getPlayer().getTileY()) {
             logic.killPlayer("Enemy touched you!");
         }

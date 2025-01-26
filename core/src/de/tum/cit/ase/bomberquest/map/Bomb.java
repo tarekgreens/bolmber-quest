@@ -56,9 +56,6 @@ public class Bomb {
             int tx=bombX-i; int ty=bombY;
             if (logic.handleExplosionTile(tx,ty)) break;
         }
-
-        // let the player know a bomb slot freed up
-        logic.bombHasExploded(this);
     }
 
     public boolean isExploded() {
