@@ -65,7 +65,10 @@ public class BomberQuestGame extends Game {
     public void setScreen(Screen screen) {
         Screen previous = getScreen();
         super.setScreen(screen);
-        if (previous != null) {
+        // If we are switching away from a screen that is *not* the GameScreen, or
+        // if we truly want to discard it, we can dispose. Otherwise, keep it.
+        if (previous != null
+            && !(previous instanceof GameScreen)) { 
             previous.dispose();
         }
     }

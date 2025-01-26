@@ -74,6 +74,12 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
+            // If the player hits ESC, pause the game
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            game.setScreen(new PauseMenuScreen(game, this));
+            return; // skip the rest of the render
+        }
+        
         if (logic.isGameOver()) {
             game.setScreen(
                 new GameOverScreen(
