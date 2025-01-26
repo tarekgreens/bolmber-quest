@@ -75,9 +75,13 @@ public class GameScreen implements Screen {
     @Override
     public void render(float delta) {
         if (logic.isGameOver()) {
-            // if game is over, show message or go menu
-            System.out.println("GAME OVER => " + logic.getGameOverReason());
-            game.goToMenu();
+            game.setScreen(
+                new GameOverScreen(
+                    game,
+                    logic.getGameOverReason(),  // e.g. "Bomb explosion" or "Timer expired"
+                    game.getSkin()
+                )
+            );
             return;
         }
 
