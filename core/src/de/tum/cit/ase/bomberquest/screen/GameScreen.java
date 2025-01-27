@@ -137,6 +137,11 @@ public class GameScreen implements Screen {
         // draw player
         player.render(batch, tileSizePx);
 
+        //draw the exit if revealed
+        if (logic.getExitObject() != null) {
+            logic.getExitObject().render(batch, tileSizePx);
+        }
+
         batch.end();
 
         // B) Now draw the shape-based explosions in one pass

@@ -25,6 +25,7 @@ public class GameMapLogic {
     private boolean gameOver = false;
     private String gameOverReason = "";
     private boolean exitUnlocked = false;
+    private Exit exitObject = null;  // Initially null => hidden
 
     public GameMapLogic(TileMap tileMap, Player player) {
         this.tileMap = tileMap;
@@ -101,6 +102,11 @@ public class GameMapLogic {
         System.out.println("Player reached the exit => Victory!");
     }
 
+    // Provide a getter so GameScreen can render the exit if it exists
+    public Exit getExitObject() {
+        return exitObject;
+    }
+
     /**
      * The bomb calls this to damage the tile (x,y). 
      * If it's an indestructible wall => returns true => stop blast.
@@ -109,13 +115,13 @@ public class GameMapLogic {
      */
     public boolean handleExplosionTile(int x, int y) {
         // Out of bounds => block
-        if (x<0 || x>=tileMap.getWidth()||y<0||y>=tileMap.getHeight()) {
+        if (x<0 || x>=tileMap.getWidth() || y<0 || y>=tileMap.getHeight()) {
             return true;
         }
 
         int t = tileMap.getTile(x,y);
         if (t == TileMap.WALL_INDESTRUCTIBLE) {
-            // block
+            // Indestructible => block
             return true;
         } else if (t == TileMap.WALL_DESTRUCTIBLE) {
             // This destroys the wall => now we can see if there's a hidden power-up
@@ -130,6 +136,14 @@ public class GameMapLogic {
                                         : Textures.POWER_UP_RED;
                 PowerUp p = new PowerUp(x, y, hiddenPU.type, pSprite);
                 powerUps.add(p);
+            }
+
+            // REVEAL EXIT if this tile is the known exit tile
+            if (x == tileMap.getExitX() && y == tileMap.getExitY()) {
+                // Create an Exit object
+                exitObject = new Exit(x, y, Textures.EXIT);
+                // At this point, it’s revealed visually in the world, 
+                // but it’s still locked until all enemies are dead.
             }
 
             // we do not block further

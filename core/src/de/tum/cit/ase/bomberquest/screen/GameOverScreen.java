@@ -58,7 +58,7 @@ public class GameOverScreen implements Screen {
 
         // Button to go back to the main menu
         TextButton menuButton = new TextButton("Return to Main Menu", skin);
-        rootTable.add(menuButton).width(300).height(50).row();
+        rootTable.add(menuButton).width(400).height(50).row();
 
         // When button clicked => go to the menu
         menuButton.addListener(new ClickListener() {
