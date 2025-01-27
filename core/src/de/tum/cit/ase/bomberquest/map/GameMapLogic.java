@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import de.tum.cit.ase.bomberquest.audio.SoundEffects;
+
 /**
  * Manages the tile-based logic: bombs, enemies, powerups, 
  * destruction of walls, killing player, etc.
@@ -67,6 +69,9 @@ public class GameMapLogic {
             if (p.getTileX() == player.getTileX() && p.getTileY() == player.getTileY()) {
                 if (p.getPowerType() == 5) player.increaseBombCapacity();
                 else if (p.getPowerType() == 6) player.increaseBombRadius();
+
+                // PLAY SOUND
+                SoundEffects.POWER_UP.play();
                 pIt.remove();
             }
         }
@@ -115,6 +120,8 @@ public class GameMapLogic {
         this.gameOver = true;
         this.gameOverReason = reason;
         System.out.println("Player died: " + reason);
+
+        SoundEffects.DIE.play();
     }
 
     public boolean isGameOver() {

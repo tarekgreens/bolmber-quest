@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
+import de.tum.cit.ase.bomberquest.audio.MusicTrack;
 
 /**
  * The MenuScreen class is responsible for displaying the main menu of the game.
@@ -84,6 +85,7 @@ public class MenuScreen implements Screen {
 
     @Override
     public void show() {
+        MusicTrack.MENU.play();
         // Set the input processor so the stage can receive input events
         Gdx.input.setInputProcessor(stage);
     }
@@ -99,5 +101,6 @@ public class MenuScreen implements Screen {
 
     @Override
     public void hide() {
+        MusicTrack.MENU.stop();
     }
 }

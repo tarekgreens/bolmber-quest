@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
+import de.tum.cit.ase.bomberquest.audio.SoundEffects;
 import de.tum.cit.ase.bomberquest.texture.Animations;
 
 /**
@@ -91,6 +92,9 @@ public class Player {
             // place a bomb
             logic.addBomb(new Bomb(tileX, tileY, bombRadius, logic));
             bombsActive++;
+
+            // PLAY SOUND
+            SoundEffects.BOMB_PLACE.play();
         }
     }
 

@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
+import de.tum.cit.ase.bomberquest.audio.MusicTrack;
 import de.tum.cit.ase.bomberquest.map.*;
 import de.tum.cit.ase.bomberquest.texture.Textures;
 
@@ -247,9 +248,14 @@ public class GameScreen implements Screen {
     }
 
     @Override
-    public void show() {}
+    public void show() {
+        MusicTrack.MENU.stop();
+        MusicTrack.BACKGROUND.play();
+    }
     @Override
-    public void hide() {}
+    public void hide() {
+        MusicTrack.BACKGROUND.stop();
+    }
     @Override
     public void pause() {}
     @Override

@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
+import de.tum.cit.ase.bomberquest.audio.SoundEffects;
 
 /**
  * The VictoryScreen class represents the screen displayed when the player achieves victory.
@@ -70,6 +71,9 @@ public class VictoryScreen implements Screen {
         // Optional: Add more stats or information about the victory
         Label statsLabel = new Label("Congratulations! You've completed the level!", skin);
         table.add(statsLabel).padTop(20).row();
+
+        // PLAY SOUND
+        SoundEffects.WIN.play();
     }
 
     @Override

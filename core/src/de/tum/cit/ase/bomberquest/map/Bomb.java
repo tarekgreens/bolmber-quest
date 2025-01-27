@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 
+import de.tum.cit.ase.bomberquest.audio.SoundEffects;
 import de.tum.cit.ase.bomberquest.texture.Animations;
 
 /**
@@ -131,6 +132,9 @@ public class Bomb {
                 break; // wall found, stop
             }
         }
+        // 2) play sound
+        SoundEffects.BOMB_EXPLODE.play();
+
     }
 
         // A wrapper to call logic.handleExplosionTile(...) AND store the tile if not blocked
