@@ -47,16 +47,14 @@ public class GameScreen implements Screen {
         // 3) Create the logic that holds bombs, enemies, powerups
         logic = new GameMapLogic(tileMap, player);
 
-        // 2) Create a Player at the tileMap's entrance
-        TextureRegion playerSprite = Textures.ENEMY; 
         // Suppose you have Textures.CHARACTER or something
-        player = new Player(tileMap, tileMap.getEntranceX(), tileMap.getEntranceY(), playerSprite, logic);
+        player = new Player(tileMap, tileMap.getEntranceX(), tileMap.getEntranceY(), logic);
         logic.setPlayer(player);
 
         // 4) Spawn enemies from tileMap enemySpawns
         for (TileMap.EnemySpawn es : tileMap.getEnemySpawns()) {
             TextureRegion eSprite = Textures.ENEMY; 
-            Enemy e = new Enemy(tileMap, es.x, es.y, eSprite, logic);
+            Enemy e = new Enemy(tileMap, es.x, es.y, logic);
             logic.addEnemy(e);
         }
 
@@ -101,7 +99,7 @@ public class GameScreen implements Screen {
         }
 
         // -- 2) Update gameplay logic
-        player.update();
+        player.update(delta);
         logic.update(delta);
 
         // -- 3) Update camera and draw map/objects
@@ -111,16 +109,6 @@ public class GameScreen implements Screen {
 
         ScreenUtils.clear(Color.BLACK);
 
-        // 1) Update
-        player.update();
-        logic.update(delta);
-
-        // 2) Update camera
-        clampCamera80Percent();
-
-        // 3) Render
-        camera.update();
-        batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
         // draw the tile-based map
@@ -141,12 +129,7 @@ public class GameScreen implements Screen {
 
         // draw bombs
         for (Bomb b : logic.getBombs()) {
-            if (!b.isExploded()) {
-                float px = b.getX()*tileSizePx;
-                float py = b.getY()*tileSizePx;
-                // we can draw a bomb sprite
-                batch.draw(Textures.BOMB, px, py);
-            }
+            b.render(batch, tileSizePx);
         }
 
         // draw enemies
@@ -239,7 +222,7 @@ public class GameScreen implements Screen {
             case TileMap.WALL_DESTRUCTIBLE: return Textures.DEST_WALL;
             default: 
                 // treat as floor
-                return Textures.FLOWERS; 
+                return Textures.TILES; 
         }
     }
 

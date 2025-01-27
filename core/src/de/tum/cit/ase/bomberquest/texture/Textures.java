@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 public class Textures {
     
     public static final TextureRegion FLOWERS = SpriteSheet.BASIC_TILES.at(2, 5);
+    public static final TextureRegion TILES = SpriteSheet.BASIC_TILES.at(2, 3);
     public static final TextureRegion DEST_WALL = SpriteSheet.BASIC_TILES.at(1,4 );
     public static final TextureRegion INDEST_WALL = SpriteSheet.BASIC_TILES.at(1,6 );
     public static final TextureRegion CHEST = SpriteSheet.BASIC_TILES.at(5, 5);

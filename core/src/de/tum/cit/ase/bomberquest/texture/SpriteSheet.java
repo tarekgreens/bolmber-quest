@@ -17,6 +17,14 @@ import de.tum.cit.ase.bomberquest.map.PowerUp;
  */
 public enum SpriteSheet {
     
+    MOBS("mobs.png", 16, 16),
+
+    /** 16x16 portion of mainFile for bombs (top row). */
+    BOMB_SHEET("original-bomberman.png", 16, 16),
+
+    /** 32x32 portion of mainFile for large crosses. */
+    BLAST_SHEET("original-bomberman.png", 32, 32),
+
     /** The character spritesheet, which has a grid size of 16x32. */
     CHARACTER("character.png", 16, 20),
     /** The basic tiles spritesheet, which has a grid size of 16x16. */
