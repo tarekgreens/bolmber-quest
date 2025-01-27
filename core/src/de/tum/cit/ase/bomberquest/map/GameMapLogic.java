@@ -40,7 +40,7 @@ public class GameMapLogic {
         while (bombIt.hasNext()) {
             Bomb b = bombIt.next();
             b.update(delta);
-            if (b.isExploded()) {
+            if (b.isDone()) {
                 bombIt.remove();
                 player.bombExploded();
             }

@@ -23,8 +23,6 @@ public class Animations {
 
     // Bomb fuse: 3 frames (16x16) from top row in BOMB_SHEET
     public static final Animation<TextureRegion> BOMB_FUSE;
-    // Bomb blast: 4 frames (32x32) from BLAST_SHEET
-    public static final Animation<TextureRegion> BOMB_BLAST;
 
     static {
         // We have 4 frames across columns 5..8
@@ -88,18 +86,5 @@ public class Animations {
         }
         BOMB_FUSE = new Animation<>(0.15f, fuseFrames);
         BOMB_FUSE.setPlayMode(Animation.PlayMode.LOOP);
-
-        /*
-         * Suppose the big cross shapes each occupy a 32x32 tile
-         * in BLAST_SHEET. Let's guess they are in rows 1..4, col=1. 
-         * (So 4 total frames of the explosion.)
-         */
-        TextureRegion[] blastFrames = new TextureRegion[4];
-        for (int row = 1; row <= 4; row++) {
-            blastFrames[row - 1] = SpriteSheet.BLAST_SHEET.at(row, 1);
-        }
-        BOMB_BLAST = new Animation<>(0.07f, blastFrames);
-        BOMB_BLAST.setPlayMode(Animation.PlayMode.NORMAL); 
-        // We only want to play the explosion once
     }
 }

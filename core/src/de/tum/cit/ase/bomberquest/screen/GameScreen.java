@@ -6,6 +6,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.*;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import de.tum.cit.ase.bomberquest.BomberQuestGame;
@@ -24,6 +25,7 @@ public class GameScreen implements Screen {
     private OrthographicCamera camera;
     private ExtendViewport viewport;
     private SpriteBatch batch;
+    private ShapeRenderer shapeRenderer;
 
     private TileMap tileMap;
     private GameMapLogic logic; 
@@ -39,6 +41,8 @@ public class GameScreen implements Screen {
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
         batch = game.getSpriteBatch();
+
+        shapeRenderer = new ShapeRenderer();
 
         // 1) Load the tileMap from map.properties
         tileMap = new TileMap(40,24); // if you know it's 40×24
@@ -127,9 +131,8 @@ public class GameScreen implements Screen {
             p.render(batch, tileSizePx);
         }
 
-        // draw bombs
         for (Bomb b : logic.getBombs()) {
-            b.render(batch, tileSizePx);
+            b.renderFuse(batch, tileSizePx); // only the fuse animation
         }
 
         // draw enemies
@@ -141,6 +144,16 @@ public class GameScreen implements Screen {
         player.render(batch, tileSizePx);
 
         batch.end();
+
+        // B) Now draw the shape-based explosions in one pass
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        for (Bomb b : logic.getBombs()) {
+            b.renderExplosion(shapeRenderer, tileSizePx);
+        }
+
+        shapeRenderer.end();
 
                 // -- 4) Render the HUD on top of everything
         // Number of enemies left
@@ -242,5 +255,7 @@ public class GameScreen implements Screen {
     @Override
     public void resume() {}
     @Override
-    public void dispose() {}
+    public void dispose() {
+        shapeRenderer.dispose();
+    }
 }
