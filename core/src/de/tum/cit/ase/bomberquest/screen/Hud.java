@@ -20,9 +20,10 @@ public class Hud {
     public Hud(SpriteBatch batch, BitmapFont font) {
         this.batch = batch;
         this.font = font;
+        this.font.getData().setScale(2.5f);
         hudCamera = new OrthographicCamera();
     }
-    
+
     public void render(Player player, float timeLeft, int enemiesLeft, boolean exitUnlocked) {
         batch.setProjectionMatrix(hudCamera.combined);
         batch.begin();
@@ -40,6 +41,7 @@ public class Hud {
 
         // Draw near the top-left. Subtract e.g. 10px from the top so it’s not offscreen
         float margin = 10;
+        font.getData().setScale(2.5f);
         font.draw(batch, hudLine, margin, hudCamera.viewportHeight - margin);
 
         batch.end();

@@ -34,7 +34,7 @@ public class GameScreen implements Screen {
     private Hud hud;
 
     private float tileSizePx = 16f; // each tile is 16×16
-    private float timeLeft = 120f;
+    private float timeLeft = 300f;
 
     public GameScreen(BomberQuestGame game, String mapFile) {
         this.game = game;

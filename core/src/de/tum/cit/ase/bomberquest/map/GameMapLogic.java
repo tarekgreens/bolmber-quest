@@ -21,6 +21,7 @@ public class GameMapLogic {
 
     private boolean gameOver = false;
     private String gameOverReason = "";
+    private boolean exitUnlocked = false;
 
     public GameMapLogic(TileMap tileMap, Player player) {
         this.tileMap = tileMap;
@@ -75,6 +76,26 @@ public class GameMapLogic {
                 pIt.remove();
             }
         }
+
+        // Check if all enemies are dead => unlock exit
+        if (!exitUnlocked && enemies.isEmpty()) {
+            exitUnlocked = true;
+            System.out.println("All enemies dead -> exit is unlocked!");
+        }
+
+        if (exitUnlocked) {
+            if (player.getTileX() == tileMap.getExitX() 
+                && player.getTileY() == tileMap.getExitY()) {
+                // player stands on the exit => victory
+                victory();
+            }
+        }
+    }
+
+    private void victory() {
+        this.gameOver = true;
+        this.gameOverReason = "Victory";
+        System.out.println("Player reached the exit => Victory!");
     }
 
     /**
@@ -145,5 +166,9 @@ public class GameMapLogic {
     }
     public void addPowerUp(PowerUp p){
         powerUps.add(p);
+    }
+
+    public boolean isExitUnlocked() {
+        return exitUnlocked;
     }
 }
