@@ -44,7 +44,7 @@ public class BomberQuestGame extends Game {
     }
 
     public void goToGame() {
-        setScreen(new GameScreen(this, "maps/map.properties")); 
+        setScreen(new GameScreen(this, "maps/map-1.properties")); 
         // We pass the path to the map file. 
         // 'GameScreen' will parse it into a TileMap, create all objects, etc.
     }

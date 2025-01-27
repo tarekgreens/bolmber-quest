@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+
 import de.tum.cit.ase.bomberquest.audio.SoundEffects;
+import de.tum.cit.ase.bomberquest.texture.Textures;
 
 /**
  * Manages the tile-based logic: bombs, enemies, powerups, 
@@ -115,8 +118,20 @@ public class GameMapLogic {
             // block
             return true;
         } else if (t == TileMap.WALL_DESTRUCTIBLE) {
-            // destroy it
+            // This destroys the wall => now we can see if there's a hidden power-up
             tileMap.destroyWall(x, y);
+
+            // See if there's a powerUp spawn at that tile
+            TileMap.PowerUpSpawn hiddenPU = tileMap.popPowerUpSpawnAt(x, y);
+            if (hiddenPU != null) {
+                // Create the actual PowerUp object
+                TextureRegion pSprite = (hiddenPU.type == 5)
+                                        ? Textures.POWER_UP_GREEN
+                                        : Textures.POWER_UP_RED;
+                PowerUp p = new PowerUp(x, y, hiddenPU.type, pSprite);
+                powerUps.add(p);
+            }
+
             // we do not block further
             return false;
         }

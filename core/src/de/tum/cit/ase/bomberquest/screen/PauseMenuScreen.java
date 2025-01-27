@@ -45,17 +45,6 @@ public class PauseMenuScreen implements Screen {
             }
         });
 
-        // "Load New Map" button
-        TextButton btnLoadMap = new TextButton("Load New Map", game.getSkin());
-        root.add(btnLoadMap).padBottom(15).row();
-        btnLoadMap.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                // e.g. show file chooser or just go directly to game
-                // game.goToGame(); // or call something that triggers a file chooser
-                game.goToMenu(); // placeholder: or implement real map-chooser logic
-            }
-        });
 
         // "Exit to Menu" button
         TextButton btnExit = new TextButton("Exit to Menu", game.getSkin());

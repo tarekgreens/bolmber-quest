@@ -5,6 +5,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.math.MathUtils;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -198,4 +199,17 @@ public class TileMap {
             this.x=x; this.y=y; this.type=type;
         }
     }
+
+    // In TileMap.java
+    public PowerUpSpawn popPowerUpSpawnAt(int x, int y) {
+        for (Iterator<PowerUpSpawn> it = powerUpSpawns.iterator(); it.hasNext(); ) {
+            PowerUpSpawn spawn = it.next();
+            if (spawn.x == x && spawn.y == y) {
+                it.remove();   // remove from the list
+                return spawn;  // return so we can create the actual PowerUp
+            }
+        }
+        return null; // none found
+    }
+
 }

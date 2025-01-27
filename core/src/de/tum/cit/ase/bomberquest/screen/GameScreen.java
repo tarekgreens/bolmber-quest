@@ -63,13 +63,6 @@ public class GameScreen implements Screen {
             logic.addEnemy(e);
         }
 
-        // 5) Spawn powerUps
-        for (TileMap.PowerUpSpawn pus : tileMap.getPowerUpSpawns()) {
-            TextureRegion pSprite = (pus.type==5) ? Textures.POWER_UP_GREEN : Textures.POWER_UP_RED;
-            PowerUp p = new PowerUp(pus.x, pus.y, pus.type, pSprite);
-            logic.addPowerUp(p);
-        }
-
         // Instantiate HUD (reusing the same SpriteBatch and a simple BitmapFont):
         // If you already have a separate font, pass that instead of a new BitmapFont().
         this.hud = new Hud(game.getSpriteBatch(), new BitmapFont());
