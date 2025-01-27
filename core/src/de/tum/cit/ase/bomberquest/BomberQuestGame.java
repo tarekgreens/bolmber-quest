@@ -3,12 +3,15 @@ package de.tum.cit.ase.bomberquest;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import de.tum.cit.ase.bomberquest.audio.MusicTrack;
 import de.tum.cit.ase.bomberquest.screen.GameScreen;
 import de.tum.cit.ase.bomberquest.screen.MenuScreen;
 import games.spooky.gdx.nativefilechooser.NativeFileChooser;
+import games.spooky.gdx.nativefilechooser.NativeFileChooserCallback;
+import games.spooky.gdx.nativefilechooser.NativeFileChooserConfiguration;
 
 /**
  * The BomberQuestGame class represents the core of the Bomber Quest game.
@@ -46,6 +49,11 @@ public class BomberQuestGame extends Game {
         // 'GameScreen' will parse it into a TileMap, create all objects, etc.
     }
 
+    public void goToGame(String mapPath) {
+        // Overloaded to start the game with a custom map file
+        setScreen(new GameScreen(this, mapPath));
+    }
+
     public SpriteBatch getSpriteBatch() {
         return spriteBatch;
     }
@@ -53,6 +61,37 @@ public class BomberQuestGame extends Game {
     public Skin getSkin() {
         return skin;
     }
+
+    public void openMapFileChooser() {
+    NativeFileChooserConfiguration config = new NativeFileChooserConfiguration();
+    // Optional: You can set an initial directory where to open, e.g.:
+    config.directory = Gdx.files.internal("maps");
+
+    fileChooser.chooseFile(config, new NativeFileChooserCallback() {
+        @Override
+        public void onFileChosen(FileHandle file) {
+            // We must schedule LibGDX actions on its main thread:
+            Gdx.app.postRunnable(() -> {
+                // Start the game with the chosen file path
+                goToGame(file.path());
+            });
+        }
+
+        @Override
+        public void onCancellation() {
+            Gdx.app.postRunnable(() -> {
+                System.out.println("User canceled file selection.");
+            });
+        }
+
+        @Override
+        public void onError(Exception ex) {
+            Gdx.app.postRunnable(() -> {
+                ex.printStackTrace();
+            });
+        }
+    });
+}
 
     @Override
     public void dispose() {

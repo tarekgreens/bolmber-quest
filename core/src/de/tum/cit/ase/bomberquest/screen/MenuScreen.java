@@ -52,6 +52,16 @@ public class MenuScreen implements Screen {
                 game.goToGame(); // Change to the game screen when button is pressed
             }
         });
+
+        TextButton loadMapButton = new TextButton("Load Map", game.getSkin());
+        table.add(loadMapButton).width(300).padTop(20).row();
+        loadMapButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                // This calls a method in BomberQuestGame that opens the file chooser.
+                game.openMapFileChooser();
+            }
+        });
     }
 
     /**

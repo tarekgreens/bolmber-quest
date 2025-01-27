@@ -2,6 +2,7 @@ package de.tum.cit.ase.bomberquest.map;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.math.MathUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -85,57 +86,95 @@ public class TileMap {
      * Loads from a properties style file, reading lines like "x,y=type".
      */
     public void loadFromProperties(String path) {
-        FileHandle handle = Gdx.files.internal(path);
-        String content = handle.readString();
-        String[] lines = content.split("\\r?\\n");
+    FileHandle handle = Gdx.files.internal(path);
+    // If this is a file outside your assets folder, you may need Gdx.files.absolute(...)
+    // or Gdx.files.external(...). Depends on how you store your custom map files.
 
-        for (String line : lines) {
-            line=line.trim();
-            if (line.isEmpty() || line.startsWith("#")) {
-                continue;
-            }
-            String[] kv = line.split("=");
-            if (kv.length<2) continue;
+    String content = handle.readString();
+    String[] lines = content.split("\\r?\\n");
 
-            String coords = kv[0].trim(); 
-            String val = kv[1].trim();
-            String[] xy = coords.split(",");
-            if (xy.length<2) continue;
+    boolean exitSpecified = false;
+    ArrayList<int[]> destructibleWalls = new ArrayList<>();
 
-            int x = Integer.parseInt(xy[0]);
-            int y = Integer.parseInt(xy[1]);
-            int type = Integer.parseInt(val);
+    for (String line : lines) {
+        line = line.trim();
+        if (line.isEmpty() || line.startsWith("#")) {
+            continue;
+        }
+        String[] kv = line.split("=");
+        if (kv.length < 2) continue;
 
-            switch(type) {
-                case 0: // Indestructible
-                    setTile(x,y, WALL_INDESTRUCTIBLE);
-                    break;
-                case 1: // Destructible
-                    setTile(x,y, WALL_DESTRUCTIBLE);
-                    break;
-                case 2: // Entrance
-                    entranceX = x; entranceY = y;
-                    break;
-                case 3: // Enemy
-                    enemySpawns.add(new EnemySpawn(x,y));
-                    break;
-                case 4: // Exit
-                    exitX=x; exitY=y;
-                    // We can also place a destructible wall here if you want
-                    break;
-                case 5: // concurrency power-up
-                    powerUpSpawns.add(new PowerUpSpawn(x,y,5));
-                    break;
-                case 6: // blast radius power-up
-                    powerUpSpawns.add(new PowerUpSpawn(x,y,6));
-                    break;
-                // etc. 
-                default:
-                    // unknown
-                    break;
-            }
+        String coords = kv[0].trim();
+        String val = kv[1].trim();
+        String[] xy = coords.split(",");
+        if (xy.length < 2) continue;
+
+        int x = Integer.parseInt(xy[0]);
+        int y = Integer.parseInt(xy[1]);
+        int type = Integer.parseInt(val);
+
+        switch(type) {
+            case 0:
+                // Indestructible wall
+                setTile(x, y, WALL_INDESTRUCTIBLE);
+                break;
+
+            case 1:
+                // Destructible wall
+                setTile(x, y, WALL_DESTRUCTIBLE);
+                destructibleWalls.add(new int[]{x, y});
+                break;
+
+            case 2:
+                // Entrance
+                entranceX = x; 
+                entranceY = y;
+                break;
+
+            case 3:
+                // Enemy spawn
+                enemySpawns.add(new EnemySpawn(x, y));
+                break;
+
+            case 4:
+                // Exit with destructible wall above
+                setTile(x, y, WALL_DESTRUCTIBLE);
+                exitX = x; 
+                exitY = y;
+                exitSpecified = true;
+                destructibleWalls.add(new int[]{x, y});
+                break;
+
+            case 5:
+                // Concurrency power-up, also has destructible wall
+                setTile(x, y, WALL_DESTRUCTIBLE);
+                powerUpSpawns.add(new PowerUpSpawn(x, y, 5));
+                destructibleWalls.add(new int[]{x, y});
+                break;
+
+            case 6:
+                // Blast radius power-up, also has destructible wall
+                setTile(x, y, WALL_DESTRUCTIBLE);
+                powerUpSpawns.add(new PowerUpSpawn(x, y, 6));
+                destructibleWalls.add(new int[]{x, y});
+                break;
+
+            default:
+                // Unknown type - ignore
+                break;
         }
     }
+
+    // If no exit was specified in the map, choose a random destructible wall to place the exit.
+    if (!exitSpecified && !destructibleWalls.isEmpty()) {
+        int idx = MathUtils.random(destructibleWalls.size() - 1);
+        int[] coords = destructibleWalls.get(idx);
+        exitX = coords[0];
+        exitY = coords[1];
+        // We keep the tile as destructible wall. If you want, you can set it again:
+        // setTile(exitX, exitY, WALL_DESTRUCTIBLE);
+    }
+}
 
     /**
      * Destroy a destructible wall at (x, y), turning it into floor.

@@ -27,6 +27,8 @@ core/src/de/tum/cit/ase/bomberquest/texture/Textures.java
 core/src/de/tum/cit/ase/bomberquest/texture/SpriteSheet.java
 core/src/de/tum/cit/ase/bomberquest/texture/Animations.java
 core/src/de/tum/cit/ase/bomberquest/entities/Bomb.java
+core/src/de/tum/cit/ase/bolmber-quest/maps/map-1.properties
+core/src/de/tum/cit/ase/bolmber-quest/maps/map-2.properties
 desktop/build.gradle
 desktop/src/de/tum/cit/ase/bomberquest/DesktopLauncher.java
 
