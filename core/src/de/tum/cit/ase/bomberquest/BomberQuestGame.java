@@ -32,9 +32,6 @@ public class BomberQuestGame extends Game {
         spriteBatch = new SpriteBatch();
         skin = new Skin(Gdx.files.internal("skin/craftacular/craftacular-ui.json"));
 
-        // Play background music
-        MusicTrack.BACKGROUND.play();
-
         // Start on menu
         goToMenu();
     }
@@ -44,9 +41,7 @@ public class BomberQuestGame extends Game {
     }
 
     public void goToGame() {
-        setScreen(new GameScreen(this, "maps/map-1.properties")); 
-        // We pass the path to the map file. 
-        // 'GameScreen' will parse it into a TileMap, create all objects, etc.
+        setScreen(new GameScreen(this, "maps/map-1.properties"));
     }
 
     public void goToGame(String mapPath) {
@@ -107,7 +102,7 @@ public class BomberQuestGame extends Game {
         // If we are switching away from a screen that is *not* the GameScreen, or
         // if we truly want to discard it, we can dispose. Otherwise, keep it.
         if (previous != null
-            && !(previous instanceof GameScreen)) { 
+            && !(previous instanceof GameScreen)) {
             previous.dispose();
         }
     }

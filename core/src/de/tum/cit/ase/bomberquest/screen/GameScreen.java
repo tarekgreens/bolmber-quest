@@ -29,7 +29,7 @@ public class GameScreen implements Screen {
     private ShapeRenderer shapeRenderer;
 
     private TileMap tileMap;
-    private GameMapLogic logic; 
+    private GameMapLogic logic;
     private Player player;
     private Hud hud;
 
@@ -58,7 +58,7 @@ public class GameScreen implements Screen {
 
         // 4) Spawn enemies from tileMap enemySpawns
         for (TileMap.EnemySpawn es : tileMap.getEnemySpawns()) {
-            TextureRegion eSprite = Textures.ENEMY; 
+            TextureRegion eSprite = Textures.ENEMY;
             Enemy e = new Enemy(tileMap, es.x, es.y, logic);
             logic.addEnemy(e);
         }
@@ -75,7 +75,7 @@ public class GameScreen implements Screen {
             game.setScreen(new PauseMenuScreen(game, this));
             return; // skip the rest of the render
         }
-        
+
         if (logic.isGameOver()) {
             game.setScreen(
                 new GameOverScreen(
@@ -91,8 +91,7 @@ public class GameScreen implements Screen {
         timeLeft -= delta;
         if (timeLeft <= 0) {
             // Time ran out -> end the game
-            System.out.println("Game Over - Timer has expired!");
-            game.goToMenu();
+            logic.killPlayer("Time is over!");
             return;
         }
 
@@ -232,9 +231,9 @@ public class GameScreen implements Screen {
         switch(tileType) {
             case TileMap.WALL_INDESTRUCTIBLE: return Textures.INDEST_WALL;
             case TileMap.WALL_DESTRUCTIBLE: return Textures.DEST_WALL;
-            default: 
+            default:
                 // treat as floor
-                return Textures.TILES; 
+                return Textures.TILES;
         }
     }
 

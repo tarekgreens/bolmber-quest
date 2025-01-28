@@ -45,12 +45,16 @@ public class GameOverScreen implements Screen {
         rootTable.setFillParent(true);
         stage.addActor(rootTable);
 
-        // Main "Game Over" label
+        String topText = "Lost!";
+        if ("Victory".equals(gameOverReason)) {
+            topText = "Win!";
+        }
+        Label topLabel = new Label(topText, skin, "title");
+        rootTable.add(topLabel).padBottom(20).row();
+
         Label gameOverLabel = new Label("GAME OVER", skin, "title");
         rootTable.add(gameOverLabel).padBottom(20).row();
 
-        // Optional: show the reason the player died
-        // (If you don't want to show a reason, you can remove this label.)
         if (gameOverReason != null && !gameOverReason.isEmpty()) {
             Label reasonLabel = new Label("Reason: " + gameOverReason, skin);
             rootTable.add(reasonLabel).padBottom(40).row();
@@ -59,8 +63,6 @@ public class GameOverScreen implements Screen {
         // Button to go back to the main menu
         TextButton menuButton = new TextButton("Return to Main Menu", skin);
         rootTable.add(menuButton).width(400).height(50).row();
-
-        // When button clicked => go to the menu
         menuButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
